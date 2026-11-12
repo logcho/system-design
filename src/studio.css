@@ -167,6 +167,35 @@ body {
   color: var(--text-2);
 }
 
+.file-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.file-picker::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  margin-top: -3px;
+  border-right: 1px solid var(--muted);
+  border-bottom: 1px solid var(--muted);
+  transform: rotate(45deg);
+}
+
+.file-picker:hover .file-name {
+  color: var(--text);
+}
+
+.file-picker select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .editor {
   font-size: 12.5px;
   font-weight: 300;

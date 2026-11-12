@@ -9,6 +9,7 @@ import { DEFAULT_CODE, EXAMPLES } from './examples';
 import { codeFromHash, copyPng, exportPng, exportSvg, shareUrl, slugify } from './export';
 import type { ThemeName } from './render/theme';
 import { resolveIcon } from './render/icons';
+import { useWorkspace } from './useWorkspace';
 
 const LS_CODE = 'linework:code';
 const LS_THEME = 'linework:theme';
@@ -31,6 +32,13 @@ const store = {
   },
 };
 
+const SAVE_LABEL = {
+  local: 'Saved in this browser',
+  saved: 'Saved',
+  saving: 'Saving…',
+  error: 'Not saved',
+} as const;
+
 function initialTheme(): ThemeName {
   const saved = store.get(LS_THEME);
   if (saved === 'light' || saved === 'dark') return saved;
@@ -38,7 +46,8 @@ function initialTheme(): ThemeName {
 }
 
 export default function App() {
-  const [code, setCode] = useState(() => codeFromHash() ?? store.get(LS_CODE) ?? DEFAULT_CODE);
+  const [sharedCode] = useState(codeFromHash);
+  const [code, setCode] = useState(() => sharedCode ?? store.get(LS_CODE) ?? DEFAULT_CODE);
   const [theme, setTheme] = useState<ThemeName>(initialTheme);
   const [layout, setLayout] = useState<LayoutResult>();
   const [layoutError, setLayoutError] = useState<string>();
@@ -54,6 +63,24 @@ export default function App() {
   const exportSvgRef = useRef<SVGSVGElement>(null);
   const pendingFit = useRef(false);
 
+  const flash = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast((t) => (t === msg ? undefined : t)), 2200);
+  }, []);
+
+  const workspace = useWorkspace({
+    code,
+    setCode,
+    disabled: sharedCode !== undefined,
+    onReplaced: (message, replaced = true) => {
+      if (replaced) {
+        pendingFit.current = true;
+        setSelectedLine(undefined);
+      }
+      if (message) flash(message);
+    },
+  });
+
   const diagram = useMemo(() => {
     const d = parse(code);
     for (const n of d.nodes) {
@@ -66,7 +93,9 @@ export default function App() {
   }, [code]);
   const hardErrors = diagram.errors.filter((e) => e.severity === 'error');
 
-  useEffect(() => store.set(LS_CODE, code), [code]);
+  useEffect(() => {
+    if (!workspace.enabled) store.set(LS_CODE, code);
+  }, [code, workspace.enabled]);
   useEffect(() => {
     store.set(LS_THEME, theme);
     document.documentElement.dataset.theme = theme;
@@ -97,14 +126,14 @@ export default function App() {
     };
   }, [diagram]);
 
-  const flash = useCallback((msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast((t) => (t === msg ? undefined : t)), 1800);
-  }, []);
-
   const loadExample = (name: string) => {
     const ex = EXAMPLES.find((e) => e.name === name);
     if (!ex) return;
+    if (workspace.enabled) {
+      // Examples open as new files so they never overwrite your work.
+      void workspace.create(ex.name, ex.code);
+      return;
+    }
     pendingFit.current = true;
     setCode(ex.code);
     setSelectedLine(undefined);
@@ -228,8 +257,32 @@ export default function App() {
       <main className="main" ref={mainRef}>
         <section className="pane editor-pane">
           <div className="pane-header">
-            <span className="file-name">{slugify(diagram.title)}.lw</span>
-            <span>Saved</span>
+            {workspace.enabled ? (
+              <label className="file-picker">
+                <span className="file-name">{workspace.file ?? '…'}.lw</span>
+                <select
+                  value={workspace.file ?? ''}
+                  aria-label="Open diagram"
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === '__new') {
+                      const name = window.prompt('Name the new diagram');
+                      if (name?.trim()) void workspace.create(name, `title ${name.trim()}\ndirection right\n\n`);
+                    } else void workspace.open(v);
+                  }}
+                >
+                  {workspace.files.map((f) => (
+                    <option key={f.name} value={f.name}>
+                      {f.name}.lw
+                    </option>
+                  ))}
+                  <option value="__new">New diagram…</option>
+                </select>
+              </label>
+            ) : (
+              <span className="file-name">{slugify(diagram.title)}.lw</span>
+            )}
+            <span>{SAVE_LABEL[workspace.status]}</span>
           </div>
           <Editor ref={editorRef} value={code} onChange={setCode} errors={diagram.errors} />
           <div className={`status ${hardErrors.length ? 'has-errors' : diagram.errors.length ? 'has-warnings' : ''}`}>
