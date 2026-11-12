@@ -1,0 +1,386 @@
+/* =====================================================================
+   Studio look: thin type, words instead of icons, hairlines, one accent.
+   Layered over styles.css; matches the "Editor, dark/light" design mock.
+   ===================================================================== */
+
+:root {
+  --sans: Geist, ui-sans-serif, system-ui, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, Menlo, monospace;
+  --accent: #3254f0;
+  --accent-hover: #2240c8;
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --canvas: #f6f7f9;
+  --dot: #dcdfe5;
+  --border: #e7e9ed;
+  --border-soft: #f0f1f4;
+  --text: #1c1f26;
+  --text-2: #4a4f59;
+  --muted: #6b717d;
+  --faint: #a0a5ae;
+  --hover: rgba(28, 31, 38, 0.05);
+  --ok: #2f9e6a;
+  --shadow: 0 8px 30px rgba(28, 31, 38, 0.08);
+  --tk-kw: #1c1f26;
+  --tk-name: #1c1f26;
+  --tk-conn: #3254f0;
+  --tk-label: #2f7d62;
+  --tk-attr: #8d939d;
+  --tk-key: #8d939d;
+  --tk-brace: #3254f0;
+  --tk-comment: #a0a5ae;
+}
+
+:root[data-theme='dark'] {
+  --accent: #8097ff;
+  --accent-hover: #a3b4ff;
+  --bg: #17181d;
+  --panel: #17181d;
+  --canvas: #121317;
+  --dot: #25272e;
+  --border: #26282f;
+  --border-soft: #202228;
+  --text: #e8eaee;
+  --text-2: #b9bec8;
+  --muted: #8e94a0;
+  --faint: #5d626c;
+  --hover: rgba(232, 234, 238, 0.06);
+  --ok: #4cc985;
+  --shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+  --tk-kw: #e8eaee;
+  --tk-name: #e8eaee;
+  --tk-conn: #8097ff;
+  --tk-label: #5cc69a;
+  --tk-attr: #7d838e;
+  --tk-key: #7d838e;
+  --tk-brace: #8097ff;
+  --tk-comment: #5d626c;
+}
+
+body {
+  font-weight: 300;
+}
+
+/* Top bar */
+
+.topbar {
+  height: 56px;
+  gap: 6px;
+  padding: 0 20px 0 24px;
+}
+
+.brand {
+  font-size: 18px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+.doc-title {
+  border-left: none;
+  margin-left: 6px;
+  padding-left: 0;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.doc-title::before {
+  content: '/';
+  margin-right: 12px;
+  color: var(--faint);
+}
+
+.btn,
+.select {
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--muted);
+  padding: 0 12px;
+  height: 34px;
+  border-radius: 8px;
+}
+
+.btn.ghost:hover,
+.btn.ghost.active,
+.select:hover {
+  background: none;
+  color: var(--text);
+}
+
+.btn.primary {
+  height: 36px;
+  margin-left: 8px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+}
+
+.btn.primary:hover {
+  background: var(--text-2);
+}
+
+.menu {
+  border-radius: 12px;
+}
+
+.menu button {
+  font-weight: 300;
+}
+
+/* Editor */
+
+.editor-pane {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+}
+
+.splitter {
+  background: transparent;
+  margin-left: -6px;
+  position: relative;
+  z-index: 3;
+}
+
+.splitter:hover {
+  background-color: transparent;
+  box-shadow: inset -2px 0 0 var(--accent);
+}
+
+.main {
+  grid-template-columns: var(--split, 34%) 0 1fr;
+}
+
+.pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.file-name {
+  font-family: var(--mono);
+  color: var(--text-2);
+}
+
+.editor {
+  font-size: 12.5px;
+  font-weight: 300;
+  line-height: 22px;
+}
+
+.gutter {
+  background: var(--panel);
+  color: var(--faint);
+  opacity: 1;
+  min-width: 44px;
+  padding: 0 18px 0 8px;
+}
+
+.tk-kw,
+.tk-conn,
+.tk-brace {
+  font-weight: 400;
+}
+
+.tk-comment {
+  font-style: normal;
+}
+
+.status {
+  border-top: 1px solid var(--border-soft);
+  padding: 0 20px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.status .ok {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.status-clean {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-clean::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+.status ul {
+  padding: 8px 0;
+}
+
+.status li b {
+  font-weight: 400;
+}
+
+/* Canvas */
+
+.zoom-controls {
+  right: 20px;
+  bottom: 20px;
+  padding: 4px;
+  border-radius: 999px;
+  box-shadow: none;
+  font-size: 12.5px;
+}
+
+.zoom-controls button {
+  border-radius: 999px;
+  color: var(--text-2);
+  min-width: 32px;
+}
+
+.zoom-pct {
+  color: var(--text) !important;
+  font-size: 12.5px;
+}
+
+.zoom-controls button:last-child {
+  padding: 0 12px;
+}
+
+.zoom-sep {
+  margin: 0 4px;
+}
+
+/* Syntax drawer */
+
+.help {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(420px, 100%);
+  border-radius: 0;
+  border-width: 0 0 0 1px;
+  box-shadow: var(--shadow);
+}
+
+.help header {
+  height: 56px;
+  padding: 0 12px 0 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.help h2 {
+  font-weight: 300;
+  font-size: 17px;
+}
+
+.help-body {
+  padding: 4px 24px 24px;
+}
+
+.help h3 {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.syntax code,
+.icon-cell span {
+  font-weight: 300;
+}
+
+.icon-search {
+  height: 38px;
+  border-radius: 10px;
+  font-weight: 300;
+}
+
+.tabs {
+  padding: 0;
+  gap: 18px;
+  border: none;
+  border-bottom: 1px solid var(--border-soft);
+  border-radius: 0;
+  background: none;
+}
+
+.tabs button {
+  flex: none;
+  flex-direction: row;
+  gap: 5px;
+  padding: 0 0 10px;
+  border-radius: 0;
+  font-weight: 300;
+}
+
+.tabs button.active {
+  background: none;
+  box-shadow: inset 0 -1px 0 var(--text);
+  font-weight: 400;
+}
+
+.tabs button small {
+  font-size: inherit;
+  color: var(--faint);
+  opacity: 1;
+}
+
+.editor,
+.help-body,
+.status {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.btn:focus-visible,
+.zoom-controls button:focus-visible,
+.select:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .main {
+    grid-template-columns: 1fr;
+    grid-template-rows: 45% 0 1fr;
+  }
+  .editor-pane {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  /* The splitter is hidden here, so place the canvas in its row explicitly. */
+  .canvas-pane {
+    grid-row: 3;
+  }
+  .doc-title {
+    display: none;
+  }
+  .topbar {
+    gap: 0;
+    padding: 0 8px 0 14px;
+  }
+  .brand {
+    font-size: 16px;
+  }
+  .btn,
+  .select {
+    padding: 0 7px;
+    font-size: 13px;
+  }
+  .btn.primary {
+    margin-left: 4px;
+    padding: 0 12px;
+  }
+}
+
+/* Geist ligates "<--" into an arrow; show the literal syntax. */
+.syntax {
+  font-variant-ligatures: none;
+}
