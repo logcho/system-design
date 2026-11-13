@@ -34,6 +34,35 @@ const SYNTAX: [string, string][] = [
   ['// comment', 'Comments (⌘/ toggles)'],
 ];
 
+const SEQUENCE: [string, string][] = [
+  ['diagram sequence', 'First line: makes a sequence diagram'],
+  ['User [icon: user]', 'Participant, in order of first use'],
+  ['A > B: request', 'Call'],
+  ['B --> A: response', 'Reply (dashed)'],
+  ['A > A: think', 'Self call'],
+  ['alt [label: ok] {\n  …\n} else {\n  …\n}', 'Alternatives'],
+  ['loop every 5s {\n  …\n}', 'Also opt, par (} and {), critical, break'],
+  ['note over A, B: text', 'Also note left of / right of'],
+  ['autonumber', 'Number every message'],
+];
+
+function SyntaxTable({ rows }: { rows: [string, string][] }) {
+  return (
+    <table className="syntax">
+      <tbody>
+        {rows.map(([code, desc]) => (
+          <tr key={code}>
+            <td>
+              <code>{code}</code>
+            </td>
+            <td>{desc}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export function HelpPanel({ theme, onClose }: { theme: ThemeName; onClose: () => void }) {
   const [q, setQ] = useState('');
   const [tab, setTab] = useState<TabId>('aws');
@@ -61,18 +90,10 @@ export function HelpPanel({ theme, onClose }: { theme: ThemeName; onClose: () =>
         </button>
       </header>
       <div className="help-body">
-        <table className="syntax">
-          <tbody>
-            {SYNTAX.map(([code, desc]) => (
-              <tr key={code}>
-                <td>
-                  <code>{code}</code>
-                </td>
-                <td>{desc}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <SyntaxTable rows={SYNTAX} />
+
+        <h3>Sequence diagrams</h3>
+        <SyntaxTable rows={SEQUENCE} />
 
         <h3>Colors</h3>
         <div className="swatches">

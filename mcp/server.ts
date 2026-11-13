@@ -36,7 +36,7 @@ const server = new McpServer(
   { name: 'linework', version: '0.1.0' },
   {
     instructions: [
-      'Linework draws system design and architecture diagrams from a small text language, with automatic layout and',
+      'Linework draws system design diagrams (architecture/flow diagrams and sequence diagrams) from a small text language, with automatic layout and',
       `official AWS, Azure and Google Cloud icons (${ICON_COUNTS.aws} AWS, ${ICON_COUNTS.azure} Azure, ${ICON_COUNTS.gcp} GCP) plus`,
       `${ICON_COUNTS.tech} technology logos.`,
       'Call get_syntax_guide before writing your first diagram in a session. Use search_icons instead of guessing icon names.',
@@ -51,7 +51,9 @@ server.registerTool(
   'get_syntax_guide',
   {
     title: 'Get the diagram language guide',
-    description: 'The Linework diagram language: components, groups, connections, icons, and tips for clear system designs.',
+    description:
+      'The Linework diagram language: flow diagrams (components, groups, connections) and sequence diagrams ' +
+      '(participants, messages, alt/loop/opt/par blocks, notes), icons, and tips for clear system designs.',
     annotations: { readOnlyHint: true },
   },
   async () => text(SYNTAX_GUIDE),
@@ -210,9 +212,10 @@ server.registerTool(
     if (!doc) return fail(`No diagram named "${n}".`);
     const r = await renderDiagram(doc.code, { theme: theme ?? 'light' });
     const a = analyze(doc.code);
+    const crossings =
+      r.layout.kind === 'flow' ? `, ${r.crossings} crossing connection pair${r.crossings === 1 ? '' : 's'}` : '';
     const summary = [
-      `${n} (version ${doc.version}): ${Math.round(r.width)}×${Math.round(r.height)} px, ` +
-        `${r.crossings} crossing connection pair${r.crossings === 1 ? '' : 's'}.`,
+      `${n} (version ${doc.version}): ${Math.round(r.width)}×${Math.round(r.height)} px${crossings}.`,
       formatAnalysis(a),
       `View live: ${viewUrl(n)}`,
     ].join('\n');

@@ -129,6 +129,73 @@ BigQuery > Dashboards
 `,
   },
   {
+    name: 'Checkout sequence',
+    code: `diagram sequence
+title Checkout
+autonumber
+
+Shopper [icon: user, color: blue]
+Web App [icon: browser]
+API Gateway [icon: aws-api-gateway]
+Orders [icon: aws-lambda]
+Payments [icon: stripe]
+Orders DB [icon: aws-dynamodb]
+Events [icon: aws-sqs]
+
+Shopper > Web App: Place order
+Web App > API Gateway: POST /orders
+API Gateway > Orders: createOrder()
+Orders > Orders: validate cart
+Orders > Payments: charge card
+
+alt [label: card declined] {
+  Payments --> Orders: 402 declined
+  Orders --> API Gateway: 402
+  API Gateway --> Web App: Payment failed
+} else [label: charged] {
+  Payments --> Orders: charge id
+  Orders > Orders DB: put order
+  Orders --> Events: order.created
+  note right of Events: Fulfilment and email consume this
+  Orders --> API Gateway: 201 Created
+  API Gateway --> Web App: Order confirmed
+}
+
+Web App --> Shopper: Show result
+`,
+  },
+  {
+    name: 'OAuth sign-in',
+    code: `diagram sequence
+title Sign in with OAuth (PKCE)
+
+User [icon: user]
+App [icon: mobile, color: blue]
+Auth Server [icon: auth, color: purple]
+API [icon: server]
+
+User > App: Tap "Sign in"
+App > App: create code verifier
+App > Auth Server: /authorize + code challenge
+Auth Server > User: Login and consent page
+User > Auth Server: Credentials
+Auth Server --> App: Redirect with code
+App > Auth Server: /token + code verifier
+Auth Server --> App: Access and refresh tokens
+note over App, Auth Server: The verifier proves the same app started the flow
+
+loop [label: until the token expires] {
+  App > API: Request with access token
+  API --> App: Data
+}
+
+opt [label: token expired] {
+  App > Auth Server: /token + refresh token
+  Auth Server --> App: New access token
+}
+`,
+  },
+  {
     name: 'URL shortener',
     code: `title URL Shortener
 direction right

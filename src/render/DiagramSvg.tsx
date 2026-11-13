@@ -4,8 +4,8 @@ import { NODE_METRICS, midpoint } from '../layout/core';
 import { IconDrawerContext } from './iconContext';
 import { THEMES, resolveColor, tint, type DiagramTheme, type ThemeName } from './theme';
 
-const PAD = 32;
-const ARROW_LEN = 9;
+export const PAD = 32;
+export const ARROW_LEN = 9;
 const ARROW_HALF = 4.5;
 
 interface Props {
@@ -291,7 +291,7 @@ function EdgeLabel({ e, t }: { e: PositionedEdge; t: DiagramTheme }) {
   );
 }
 
-function arrowHead(from: Point, tip: Point): Point[] {
+export function arrowHead(from: Point, tip: Point): Point[] {
   const len = Math.hypot(tip.x - from.x, tip.y - from.y) || 1;
   const ux = (tip.x - from.x) / len;
   const uy = (tip.y - from.y) / len;
@@ -304,7 +304,7 @@ function arrowHead(from: Point, tip: Point): Point[] {
   ];
 }
 
-function retreat(from: Point, to: Point, by: number): Point {
+export function retreat(from: Point, to: Point, by: number): Point {
   const len = Math.hypot(to.x - from.x, to.y - from.y);
   if (len <= by) return from;
   return { x: to.x - ((to.x - from.x) / len) * by, y: to.y - ((to.y - from.y) / len) * by };

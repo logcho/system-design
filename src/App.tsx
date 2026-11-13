@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { parse } from './dsl/parser';
-import { layout as runLayout, type LayoutResult } from './layout/layout';
-import { DiagramSvg } from './render/DiagramSvg';
+import { parseDocument } from './dsl/document';
+import { allMessages } from './dsl/sequence';
+import { layoutDocument, type DocumentLayout } from './layout/layout';
+import { DocumentSvg } from './render/DocumentSvg';
 import { Editor, type EditorHandle } from './components/Editor';
 import { Canvas, type CanvasHandle } from './components/Canvas';
 import { HelpPanel } from './components/HelpPanel';
@@ -51,7 +52,7 @@ export default function App() {
   const [sharedCode] = useState(codeFromHash);
   const [code, setCode] = useState(() => sharedCode ?? store.get(LS_CODE) ?? DEFAULT_CODE);
   const [theme, setTheme] = useState<ThemeName>(initialTheme);
-  const [layout, setLayout] = useState<LayoutResult>();
+  const [layout, setLayout] = useState<DocumentLayout>();
   const [layoutError, setLayoutError] = useState<string>();
   const [selectedLine, setSelectedLine] = useState<number>();
   const [showHelp, setShowHelp] = useState(false);
@@ -83,16 +84,22 @@ export default function App() {
     },
   });
 
-  const diagram = useMemo(() => {
-    const d = parse(code);
-    for (const n of d.nodes) {
+  const doc = useMemo(() => {
+    const d = parseDocument(code);
+    const withIcons = d.kind === 'flow' ? d.diagram.nodes : d.diagram.participants;
+    for (const n of withIcons) {
       if (n.icon && !resolveIcon(n.icon)) {
-        d.errors.push({ line: n.line, severity: 'warning', message: `Unknown icon "${n.icon}" (open Syntax to browse icons)` });
+        d.diagram.errors.push({ line: n.line, severity: 'warning', message: `Unknown icon "${n.icon}" (open Syntax to browse icons)` });
       }
     }
-    d.errors.sort((a, b) => a.line - b.line);
+    d.diagram.errors.sort((a, b) => a.line - b.line);
     return d;
   }, [code]);
+  const diagram = doc.diagram;
+  const counts =
+    doc.kind === 'flow'
+      ? `${doc.diagram.nodes.length} nodes, ${doc.diagram.edges.length} connections`
+      : `${doc.diagram.participants.length} participants, ${allMessages(doc.diagram.items).length} messages`;
   const hardErrors = diagram.errors.filter((e) => e.severity === 'error');
 
   useEffect(() => {
@@ -108,7 +115,7 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const handle = setTimeout(() => {
-      runLayout(diagram)
+      layoutDocument(doc)
         .then((res) => {
           if (cancelled) return;
           setLayout(res);
@@ -126,7 +133,7 @@ export default function App() {
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [diagram]);
+  }, [doc]);
 
   const loadExample = (name: string) => {
     const ex = EXAMPLES.find((e) => e.name === name);
@@ -209,8 +216,10 @@ export default function App() {
     window.addEventListener('pointerup', up);
   };
 
-  const svgW = layout ? Math.ceil(layout.width + 64) : 0;
-  const svgH = layout ? Math.ceil(layout.height + 64 + (diagram.title ? 40 : 0)) : 0;
+  const svgW = layout ? Math.ceil(layout.layout.width + 64) : 0;
+  const svgH = layout ? Math.ceil(layout.layout.height + 64 + (diagram.title ? 40 : 0)) : 0;
+  const isEmpty =
+    !!layout && (layout.kind === 'flow' ? layout.layout.nodes.length === 0 : layout.layout.participants.length === 0);
 
   return (
     <IconDrawerContext.Provider value={drawBrowserIcon}>
@@ -292,7 +301,7 @@ export default function App() {
               {diagram.errors.length === 0 && !layoutError ? (
                 <span className="ok">
                   <span>
-                    {diagram.nodes.length} nodes, {diagram.edges.length} connections
+                    {counts}
                   </span>
                   <span className="status-clean">No issues</span>
                 </span>
@@ -324,7 +333,7 @@ export default function App() {
               onBackgroundClick={() => setSelectedLine(undefined)}
             >
               {layout && (
-                <DiagramSvg
+                <DocumentSvg
                   ref={svgRef}
                   layout={layout}
                   theme={theme}
@@ -337,7 +346,7 @@ export default function App() {
                 />
               )}
             </Canvas>
-            {layout && layout.nodes.length === 0 && (
+            {isEmpty && (
               <div className="empty">
                 <p>Start typing on the left to draw.</p>
                 <code>Client &gt; Server &gt; Database</code>
@@ -349,7 +358,7 @@ export default function App() {
 
         {/* Off-screen copy with a solid background, used for exports. */}
         <div className="export-host" aria-hidden>
-          {layout && <DiagramSvg ref={exportSvgRef} layout={layout} theme={theme} title={diagram.title} withBackground />}
+          {layout && <DocumentSvg ref={exportSvgRef} layout={layout} theme={theme} title={diagram.title} withBackground />}
         </div>
 
         {toast && <div className="toast">{toast}</div>}

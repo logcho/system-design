@@ -5,9 +5,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { Resvg } from '@resvg/resvg-js';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import { icons as lucideIcons } from 'lucide-react';
-import { parse } from '../src/dsl/parser';
-import { layoutWith, type LayoutResult, type Point } from '../src/layout/core';
-import { DiagramSvg } from '../src/render/DiagramSvg';
+import { parseDocument } from '../src/dsl/document';
+import type { LayoutResult, Point } from '../src/layout/core';
+import { layoutDocumentWith, type DocumentLayout } from '../src/layout/document';
+import { DocumentSvg } from '../src/render/DocumentSvg';
 import { IconDrawerContext, type IconDrawer } from '../src/render/iconContext';
 import type { ThemeName } from '../src/render/theme';
 import { iconsRoot, resolveIcon } from './icons';
@@ -48,18 +49,20 @@ export interface RenderResult {
   width: number;
   height: number;
   scale: number;
-  layout: LayoutResult;
+  layout: DocumentLayout;
+  /** Crossing connection pairs (flow diagrams only; 0 for sequence diagrams). */
   crossings: number;
 }
 
 export async function renderDiagram(code: string, { theme = 'light', maxSize = 1600 }: RenderOptions = {}): Promise<RenderResult> {
-  const diagram = parse(code);
-  const layout = await layoutWith(elk, diagram);
+  const doc = parseDocument(code);
+  const layout = await layoutDocumentWith(elk, doc);
+  const withIcons = doc.kind === 'flow' ? doc.diagram.nodes : doc.diagram.participants;
 
   // Vendor icons are separate modules: load the ones this diagram uses up front,
   // because static rendering cannot wait for them.
   const loaded = new Map<string, SvgComponent>();
-  for (const n of diagram.nodes) {
+  for (const n of withIcons) {
     const ref = n.icon ? resolveIcon(n.icon) : undefined;
     if (ref?.kind === 'brand' && !loaded.has(ref.name)) loaded.set(ref.name, await loadBrand(ref.pack, ref.file));
   }
@@ -82,7 +85,7 @@ export async function renderDiagram(code: string, { theme = 'light', maxSize = 1
 
   const svg = renderToStaticMarkup(
     <IconDrawerContext.Provider value={drawIcon}>
-      <DiagramSvg layout={layout} theme={theme} title={diagram.title} withBackground />
+      <DocumentSvg layout={layout} theme={theme} title={doc.diagram.title} withBackground />
     </IconDrawerContext.Provider>,
   );
 
@@ -96,7 +99,8 @@ export async function renderDiagram(code: string, { theme = 'light', maxSize = 1
     .render()
     .asPng();
 
-  return { png, svg, width, height, scale, layout, crossings: countCrossings(layout) };
+  const crossings = layout.kind === 'flow' ? countCrossings(layout.layout) : 0;
+  return { png, svg, width, height, scale, layout, crossings };
 }
 
 /** Pairs of connections whose lines cross: a quick measure of how tangled a layout is. */

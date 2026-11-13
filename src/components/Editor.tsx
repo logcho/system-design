@@ -27,10 +27,28 @@ function highlightLine(line: string, key: number): React.ReactNode {
     rest = rest.slice(0, cm.index + cm[1].length);
   }
 
-  const directive = /^(\s*)(direction|title)(\s+.*)?$/i.exec(rest);
+  const directive = /^(\s*)(direction|title|diagram|autonumber)(\s+.*)?$/i.exec(rest);
+  const note = /^(\s*)(note)(\s+)(over|left of|right of)(\s+[^:]*)(:.*)?$/i.exec(rest);
   if (directive) {
     out.push(directive[1], <span key="k" className="tk-kw">{directive[2]}</span>, <span key="v" className="tk-val">{directive[3] ?? ''}</span>);
+  } else if (note) {
+    out.push(
+      note[1],
+      <span key="k" className="tk-kw">{note[2]}</span>,
+      note[3],
+      <span key="w" className="tk-kw">{note[4]}</span>,
+      <span key="t" className="tk-name">{note[5]}</span>,
+      <span key="l" className="tk-label">{note[6] ?? ''}</span>,
+    );
   } else {
+    // Sequence blocks: "loop ... {", "} else ... {"
+    const block = /\{\s*$/.test(rest) ? /^(\s*)(\}\s*)?(alt|loop|opt|par|critical|break|else|and)\b/i.exec(rest) : null;
+    if (block) {
+      out.push(block[1]);
+      if (block[2]) out.push(<span key="cb" className="tk-brace">{block[2]}</span>);
+      out.push(<span key="bk" className="tk-kw">{block[3]}</span>);
+      rest = rest.slice(block[0].length);
+    }
     let attrs = '';
     const am = /\[[^\]]*\]\s*(\{)?\s*$/.exec(rest);
     if (am) {
