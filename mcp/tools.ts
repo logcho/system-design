@@ -3,6 +3,9 @@
  * diagrams stored as `.lw` files in one folder. See cli.ts for how the server
  * is started.
  */
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { ConflictError, listDiagrams, readDiagram, toDiagramName, writeDiagram } from '../server/store';
@@ -11,7 +14,27 @@ import { SYNTAX_GUIDE } from './guide';
 import { ICON_COUNTS, PACK_LABEL, searchIcons } from './icons';
 import { renderDiagram } from './render';
 
-export const VERSION = '0.1.0';
+/**
+ * The package version, read from package.json so it can never drift from what
+ * `npm version` sets. Works from the repo (mcp/tools.ts) and from the bundle
+ * (dist/node/cli.js) by walking up to the linework-mcp package.json.
+ */
+export const VERSION = readVersion();
+
+function readVersion(): string {
+  let dir = path.dirname(fileURLToPath(import.meta.url));
+  for (;;) {
+    try {
+      const pkg = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8')) as { name?: string; version?: string };
+      if (pkg.name === 'linework-mcp' && pkg.version) return pkg.version;
+    } catch {
+      // no package.json here; keep looking
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return '0.0.0';
+    dir = parent;
+  }
+}
 
 const text = (t: string) => ({ content: [{ type: 'text' as const, text: t }] });
 const fail = (t: string) => ({ content: [{ type: 'text' as const, text: t }], isError: true });
