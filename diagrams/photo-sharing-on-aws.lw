@@ -1,0 +1,45 @@
+title Photo Sharing on AWS
+direction right
+
+User [icon: user, color: blue]
+
+AWS Cloud [color: orange] {
+  Edge {
+    Route 53 [icon: aws-route53]
+    CloudFront [icon: aws-cloudfront]
+    WAF [icon: aws-waf]
+  }
+  Static Site [icon: aws-s3]
+  API Gateway [icon: aws-api-gateway]
+  Cognito [icon: aws-cognito]
+
+  VPC [icon: aws-vpc, color: green] {
+    Upload Fn [icon: aws-lambda]
+    Thumbnail Fn [icon: aws-lambda]
+    Feed Service [icon: aws-ecs]
+    Aurora [icon: aws-aurora]
+  }
+
+  Photos Bucket [icon: aws-s3]
+  Resize Queue [icon: aws-sqs]
+  Metadata [icon: aws-dynamodb]
+  Cache [icon: aws-elasticache]
+  Notifications [icon: aws-sns]
+  CloudWatch [icon: aws-cloudwatch]
+}
+
+User > Route 53 > CloudFront
+CloudFront > WAF
+WAF > Static Site
+WAF > API Gateway: /api
+API Gateway - Cognito: authorize
+API Gateway > Upload Fn: POST /photos
+API Gateway > Feed Service: GET /feed
+Upload Fn > Photos Bucket: put object
+Photos Bucket --> Resize Queue: s3 event
+Resize Queue > Thumbnail Fn
+Thumbnail Fn > Metadata
+Thumbnail Fn --> Notifications: done
+Feed Service > Cache, Aurora
+Feed Service > Metadata
+Upload Fn, Thumbnail Fn, Feed Service --> CloudWatch

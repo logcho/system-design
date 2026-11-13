@@ -1,0 +1,41 @@
+title Ride sharing backend
+direction right
+
+Rider App [icon: mobile, color: blue]
+Driver App [icon: mobile, color: green]
+
+AWS [color: orange] {
+  Edge {
+    API Gateway [icon: aws-api-gateway]
+    Realtime [icon: aws-api-gateway, label: WebSocket API]
+  }
+  Services [icon: aws-eks, color: teal] {
+    Trips [icon: service]
+    Matching [icon: service]
+    Pricing [icon: service]
+    Location [icon: service]
+    Notifications [icon: aws-sns]
+  }
+  Data [color: purple] {
+    Trips DB [icon: aws-aurora]
+    Driver Positions [icon: aws-elasticache]
+    Events [icon: aws-kinesis]
+  }
+}
+
+Payments [icon: stripe]
+
+Rider App > API Gateway: HTTPS
+Driver App > Realtime: GPS every 4s
+API Gateway > Trips: request ride
+Trips > Pricing: quote
+Trips > Matching: find driver
+Realtime > Location
+Location > Driver Positions: GEOADD
+Matching > Driver Positions: nearby drivers
+Matching --> Realtime: offer to driver
+Trips > Trips DB
+Trips --> Events: trip.completed
+Trips > Payments: charge
+Trips --> Notifications: driver arriving
+Rider App <-- Notifications: push
