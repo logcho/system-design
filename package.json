@@ -1,6 +1,6 @@
 {
   "name": "linework-mcp",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "System design diagrams as code, with an MCP server so AI agents can draw them: architecture and sequence diagrams with official AWS, Azure and GCP icons, live preview and PNG rendering",
   "license": "MIT",
   "type": "module",
