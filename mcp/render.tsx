@@ -40,6 +40,8 @@ export interface RenderOptions {
   theme?: ThemeName;
   /** Longest side of the PNG in pixels; small diagrams render at up to 2x. */
   maxSize?: number;
+  /** Fixed zoom (e.g. 2 for a crisp export) instead of fitting into maxSize; capped at 8000 px. */
+  scale?: number;
 }
 
 export interface RenderResult {
@@ -54,7 +56,10 @@ export interface RenderResult {
   crossings: number;
 }
 
-export async function renderDiagram(code: string, { theme = 'light', maxSize = 1600 }: RenderOptions = {}): Promise<RenderResult> {
+export async function renderDiagram(
+  code: string,
+  { theme = 'light', maxSize = 1600, scale: fixedScale }: RenderOptions = {},
+): Promise<RenderResult> {
   const doc = parseDocument(code);
   const layout = await layoutDocumentWith(elk, doc);
 
@@ -90,7 +95,8 @@ export async function renderDiagram(code: string, { theme = 'light', maxSize = 1
 
   const width = Number(/width="([\d.]+)"/.exec(svg)?.[1] ?? 0);
   const height = Number(/height="([\d.]+)"/.exec(svg)?.[1] ?? 0);
-  const scale = Math.min(2, maxSize / Math.max(width, height, 1));
+  const longest = Math.max(width, height, 1);
+  const scale = fixedScale ? Math.min(fixedScale, 8000 / longest) : Math.min(2, maxSize / longest);
   const png = new Resvg(svg, {
     fitTo: { mode: 'zoom', value: scale },
     font: { fontFiles: FONT_FILES, loadSystemFonts: false, defaultFontFamily: 'Geist' },

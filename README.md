@@ -90,6 +90,7 @@ Options: `--dir <path>` (diagrams folder), `--port <n>` (app port, default 5173)
 | `edit_diagram` | Replace an exact piece of text |
 | `search_icons` | Find exact icon names: "dynamo" → `aws-dynamodb`, "cosmos" → `azure-cosmos-db` |
 | `render_diagram` | Render a PNG exactly as the app draws it, plus a count of crossing connections, so the agent can look at the layout and improve it |
+| `export_diagram` | Save a diagram as a PNG (2x) or SVG file, next to the diagram or at a path in your project (e.g. `docs/architecture.png`) |
 
 Every write returns syntax errors, unknown icons (with close matches) and components that were never declared, so the agent can fix its own mistakes. With `render_diagram` it can also see the result: rendering runs on the server with the same layout and renderer as the app (resvg, with the bundled Geist fonts), so no browser is needed.
 

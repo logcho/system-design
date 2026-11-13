@@ -12,6 +12,7 @@ import { countCrossings } from './render';
 import type { LayoutResult } from '../src/layout/core';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
+let project: string;
 let dir: string;
 let client: Client;
 
@@ -21,7 +22,9 @@ const call = async (name: string, args: Record<string, unknown> = {}) =>
 const textOf = (r: ToolResult) => r.content.map((c) => c.text).join('\n');
 
 beforeAll(async () => {
-  dir = mkdtempSync(path.join(tmpdir(), 'linework-mcp-'));
+  // A throwaway project with a diagrams folder, like a user's repo.
+  project = mkdtempSync(path.join(tmpdir(), 'linework-mcp-'));
+  dir = path.join(project, 'diagrams');
   client = new Client({ name: 'test', version: '0' });
   await client.connect(
     new StdioClientTransport({
@@ -35,7 +38,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client?.close();
-  rmSync(dir, { recursive: true, force: true });
+  rmSync(project, { recursive: true, force: true });
 });
 
 describe('linework MCP server', () => {
@@ -43,6 +46,7 @@ describe('linework MCP server', () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
       'edit_diagram',
+      'export_diagram',
       'get_syntax_guide',
       'list_diagrams',
       'read_diagram',
@@ -166,6 +170,24 @@ describe('linework MCP server', () => {
     };
     expect(img.content.some((c) => c.type === 'image')).toBe(true);
     expect((img.content.find((c) => c.type === 'text') as { text: string }).text).toMatch(/crossing connection pair/);
+  });
+
+  it('exports diagrams as PNG and SVG files inside the project', async () => {
+    const png = textOf(await call('export_diagram', { name: 'checkout-flow' }));
+    expect(png).toMatch(/Saved .*checkout-flow\.png \(\d+×\d+ px, light theme\)/);
+    const pngFile = readFileSync(path.join(dir, 'checkout-flow.png'));
+    expect(pngFile.subarray(1, 4).toString()).toBe('PNG');
+
+    const svg = textOf(await call('export_diagram', { name: 'checkout-flow', path: 'docs/flow.svg', theme: 'dark' }));
+    expect(svg).toMatch(/Saved docs\/flow\.svg/);
+    expect(readFileSync(path.join(project, 'docs/flow.svg'), 'utf8')).toMatch(/^<\?xml[^]*<svg/);
+
+    const outside = await call('export_diagram', { name: 'checkout-flow', path: '../../escape.png' });
+    expect(outside.isError).toBe(true);
+    expect(textOf(outside)).toMatch(/outside the project/);
+
+    const wrongExt = await call('export_diagram', { name: 'checkout-flow', format: 'png', path: 'docs/flow.jpg' });
+    expect(wrongExt.isError).toBe(true);
   });
 
   it('rejects names that escape the folder', async () => {
