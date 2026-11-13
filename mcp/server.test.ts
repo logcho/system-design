@@ -8,6 +8,8 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { parse } from '../src/dsl/parser';
 import { SYNTAX_GUIDE } from './guide';
 import { analyze } from './analyze';
+import { countCrossings } from './render';
+import type { LayoutResult } from '../src/layout/core';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 let dir: string;
@@ -44,6 +46,7 @@ describe('linework MCP server', () => {
       'get_syntax_guide',
       'list_diagrams',
       'read_diagram',
+      'render_diagram',
       'search_icons',
       'write_diagram',
     ]);
@@ -111,6 +114,22 @@ describe('linework MCP server', () => {
     expect(textOf(await call('search_icons', { query: 'postgres' }))).toMatch(/postgresql/);
   });
 
+  it('renders a diagram to a PNG and counts crossings', async () => {
+    const r = (await client.callTool({ name: 'render_diagram', arguments: { name: 'checkout-flow', theme: 'dark' } })) as {
+      content: ({ type: 'image'; data: string; mimeType: string } | { type: 'text'; text: string })[];
+    };
+    const image = r.content.find((c) => c.type === 'image') as { data: string; mimeType: string };
+    expect(image.mimeType).toBe('image/png');
+    const png = Buffer.from(image.data, 'base64');
+    expect(png.subarray(1, 4).toString()).toBe('PNG');
+    expect(png.length).toBeGreaterThan(5_000);
+    const t = r.content.find((c) => c.type === 'text') as { text: string };
+    expect(t.text).toMatch(/\d+×\d+ px, 0 crossing connection pairs/);
+
+    const missing = await call('render_diagram', { name: 'nope' });
+    expect(missing.isError).toBe(true);
+  });
+
   it('rejects names that escape the folder', async () => {
     const r = await call('write_diagram', { name: '../../etc/passwd', code: 'A' });
     expect(textOf(r)).toMatch(/etc-passwd\.lw/);
@@ -125,5 +144,25 @@ describe('syntax guide', () => {
     const a = analyze(example);
     expect(a.problems).toEqual([]);
     expect(a.undeclared).toEqual([]);
+  });
+});
+
+describe('countCrossings', () => {
+  const edge = (from: string, to: string, points: [number, number][]) =>
+    ({ def: { id: from + to, from, to, arrow: 'forward', dashed: false, line: 1 }, points: points.map(([x, y]) => ({ x, y })) }) as LayoutResult['edges'][number];
+
+  it('counts pairs of connections that cross, ignoring ones that share a component', () => {
+    const layout = {
+      width: 100,
+      height: 100,
+      nodes: [],
+      edges: [
+        edge('A', 'B', [[0, 50], [100, 50]]),
+        edge('C', 'D', [[50, 0], [50, 100]]), // crosses A>B
+        edge('A', 'E', [[0, 50], [50, 0]]), // touches A>B at A only
+        edge('F', 'G', [[0, 80], [100, 80]]), // crosses C>D
+      ],
+    } satisfies LayoutResult;
+    expect(countCrossings(layout)).toBe(2);
   });
 });

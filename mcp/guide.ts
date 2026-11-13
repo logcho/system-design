@@ -52,6 +52,11 @@ When unsure of a name, call search_icons rather than guessing.
 - Label connections with the protocol or payload (HTTPS, gRPC, "order.created").
 - Use dashed arrows for async flows (queues, events, replication).
 - Prefer direction right for request flows, down for pipelines and hierarchies.
+- Layout follows connection direction. When something flows back to an earlier component
+  (a push notification to the client, a callback), write it from the earlier side so that
+  component keeps its place: "Rider App <-- Notifications: push", not
+  "Notifications --> Rider App: push". Both draw the same arrow.
+- After writing, call render_diagram and look: fix crossings, stray boxes and long detours.
 - Keep one diagram to roughly 25 components; split bigger systems into several diagrams.
 
 ## Example

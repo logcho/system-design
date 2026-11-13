@@ -29,11 +29,18 @@ export const Canvas = forwardRef<CanvasHandle, Props>(function Canvas(
   const [view, setView] = useState<View>({ x: 0, y: 0, k: 1 });
   const drag = useRef<{ sx: number; sy: number; vx: number; vy: number; moved: boolean } | null>(null);
   const hasFitted = useRef(false);
+  /** A fit was requested while the canvas had no usable size (hidden tab, still laying out). */
+  const fitPending = useRef(false);
 
   const fit = useCallback(() => {
     const host = hostRef.current;
     if (!host || !contentWidth || !contentHeight) return;
     const { clientWidth: w, clientHeight: h } = host;
+    if (w < 120 || h < 120) {
+      fitPending.current = true;
+      return;
+    }
+    fitPending.current = false;
     const k = clamp(Math.min((w - 48) / contentWidth, (h - 48) / contentHeight, 1.25), MIN_K, MAX_K);
     setView({ k, x: (w - contentWidth * k) / 2, y: (h - contentHeight * k) / 2 });
   }, [contentWidth, contentHeight]);
@@ -46,6 +53,17 @@ export const Canvas = forwardRef<CanvasHandle, Props>(function Canvas(
       fit();
     }
   }, [contentWidth, fit]);
+
+  // Finish a deferred fit as soon as the canvas gets a real size.
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const ro = new ResizeObserver(() => {
+      if (fitPending.current) fit();
+    });
+    ro.observe(host);
+    return () => ro.disconnect();
+  }, [fit]);
 
   const zoomAt = useCallback((factor: number, cx: number, cy: number) => {
     setView((v) => {

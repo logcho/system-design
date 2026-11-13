@@ -81,8 +81,9 @@ Then run the app with `npm run dev` and ask for a design, e.g. *"Draw the backen
 | `write_diagram` | Create a diagram, or replace one (needs the version from `read_diagram`, so your edits are never overwritten) |
 | `edit_diagram` | Replace an exact piece of text |
 | `search_icons` | Find exact icon names: "dynamo" → `aws-dynamodb`, "cosmos" → `azure-cosmos-db` |
+| `render_diagram` | Render a PNG exactly as the app draws it, plus a count of crossing connections, so the agent can look at the layout and improve it |
 
-Every write returns syntax errors, unknown icons (with close matches) and components that were never declared, so the agent can fix its own mistakes.
+Every write returns syntax errors, unknown icons (with close matches) and components that were never declared, so the agent can fix its own mistakes. With `render_diagram` it can also see the result: rendering runs on the server with the same layout and renderer as the app (resvg, with the bundled Geist fonts), so no browser is needed.
 
 ## Language reference
 
@@ -117,7 +118,7 @@ Connectors must have spaces on both sides, so names like `auth-service` work. No
 
 ```
 diagrams/     your diagrams as .lw files (shared by the app and the MCP server)
-mcp/          MCP server: tools, syntax guide, validation, icon search
+mcp/          MCP server: tools, syntax guide, validation, icon search, PNG rendering
 server/       file store and the dev-server plugin that syncs diagrams/ live
 src/
   dsl/        parser + types for the diagram language (pure, unit tested)
@@ -131,11 +132,10 @@ src/
 ## Roadmap
 
 - Sequence diagrams and entity-relationship diagrams
-- `render_diagram` MCP tool returning a PNG, so agents can check the layout visually
 - Real-time collaboration (Yjs) and a hosted backend for saved documents
 - Freeform whiteboard layer alongside code-generated diagrams
 - Markdown docs that embed live diagrams
 
 ## License
 
-MIT. Cloud and technology icons come from [`@likec4/icons`](https://github.com/likec4/likec4) (MIT), which packages the official AWS, Azure and Google Cloud architecture icon sets; those icons and logos remain trademarks of their owners and are intended for architecture diagrams.
+MIT. The Geist fonts in `mcp/fonts/` are by Vercel under the SIL Open Font License (`mcp/fonts/OFL.txt`). Cloud and technology icons come from [`@likec4/icons`](https://github.com/likec4/likec4) (MIT), which packages the official AWS, Azure and Google Cloud architecture icon sets; those icons and logos remain trademarks of their owners and are intended for architecture diagrams.

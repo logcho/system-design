@@ -10,6 +10,8 @@ import { codeFromHash, copyPng, exportPng, exportSvg, shareUrl, slugify } from '
 import type { ThemeName } from './render/theme';
 import { resolveIcon } from './render/icons';
 import { useWorkspace } from './useWorkspace';
+import { IconDrawerContext } from './render/iconContext';
+import { drawBrowserIcon } from './render/browserIcons';
 
 const LS_CODE = 'linework:code';
 const LS_THEME = 'linework:theme';
@@ -211,145 +213,147 @@ export default function App() {
   const svgH = layout ? Math.ceil(layout.height + 64 + (diagram.title ? 40 : 0)) : 0;
 
   return (
-    <div className="app" style={{ '--split': `${split}%` } as React.CSSProperties}>
-      <header className="topbar">
-        <span className="brand">linework</span>
-        <span className="doc-title">{diagram.title ?? 'Untitled diagram'}</span>
-        <div className="spacer" />
-        <label className="select" title="Load an example">
-          <span>Examples</span>
-          <select value="" onChange={(e) => loadExample(e.target.value)} aria-label="Load example">
-            <option value="" disabled>
-              Load example…
-            </option>
-            {EXAMPLES.map((ex) => (
-              <option key={ex.name}>{ex.name}</option>
-            ))}
-          </select>
-        </label>
-        <button className={`btn ghost ${showHelp ? 'active' : ''}`} onClick={() => setShowHelp((s) => !s)}>
-          Syntax
-        </button>
-        <button className="btn ghost" onClick={() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))}>
-          {theme === 'light' ? 'Dark' : 'Light'}
-        </button>
-        <button className="btn ghost" onClick={onShare} title="Copy share link (⌘S)">
-          Share
-        </button>
-        <div className="menu-wrap">
-          <button className="btn primary" onClick={() => setExportOpen((o) => !o)} disabled={!layout}>
-            Export
+    <IconDrawerContext.Provider value={drawBrowserIcon}>
+      <div className="app" style={{ '--split': `${split}%` } as React.CSSProperties}>
+        <header className="topbar">
+          <span className="brand">linework</span>
+          <span className="doc-title">{diagram.title ?? 'Untitled diagram'}</span>
+          <div className="spacer" />
+          <label className="select" title="Load an example">
+            <span>Examples</span>
+            <select value="" onChange={(e) => loadExample(e.target.value)} aria-label="Load example">
+              <option value="" disabled>
+                Load example…
+              </option>
+              {EXAMPLES.map((ex) => (
+                <option key={ex.name}>{ex.name}</option>
+              ))}
+            </select>
+          </label>
+          <button className={`btn ghost ${showHelp ? 'active' : ''}`} onClick={() => setShowHelp((s) => !s)}>
+            Syntax
           </button>
-          {exportOpen && (
-            <>
-              <div className="menu-scrim" onClick={() => setExportOpen(false)} />
-              <div className="menu" role="menu">
-                <button onClick={() => doExport('png')}>Download PNG</button>
-                <button onClick={() => doExport('svg')}>Download SVG</button>
-                <button onClick={() => doExport('copy-png')}>Copy image</button>
-                <button onClick={() => doExport('copy-code')}>Copy code</button>
-              </div>
-            </>
-          )}
-        </div>
-      </header>
-
-      <main className="main" ref={mainRef}>
-        <section className="pane editor-pane">
-          <div className="pane-header">
-            {workspace.enabled ? (
-              <label className="file-picker">
-                <span className="file-name">{workspace.file ?? '…'}.lw</span>
-                <select
-                  value={workspace.file ?? ''}
-                  aria-label="Open diagram"
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === '__new') {
-                      const name = window.prompt('Name the new diagram');
-                      if (name?.trim()) void workspace.create(name, `title ${name.trim()}\ndirection right\n\n`);
-                    } else void workspace.open(v);
-                  }}
-                >
-                  {workspace.files.map((f) => (
-                    <option key={f.name} value={f.name}>
-                      {f.name}.lw
-                    </option>
-                  ))}
-                  <option value="__new">New diagram…</option>
-                </select>
-              </label>
-            ) : (
-              <span className="file-name">{slugify(diagram.title)}.lw</span>
-            )}
-            <span>{SAVE_LABEL[workspace.status]}</span>
-          </div>
-          <Editor ref={editorRef} value={code} onChange={setCode} errors={diagram.errors} />
-          <div className={`status ${hardErrors.length ? 'has-errors' : diagram.errors.length ? 'has-warnings' : ''}`}>
-            {diagram.errors.length === 0 && !layoutError ? (
-              <span className="ok">
-                <span>
-                  {diagram.nodes.length} nodes, {diagram.edges.length} connections
-                </span>
-                <span className="status-clean">No issues</span>
-              </span>
-            ) : (
-              <ul>
-                {layoutError && (
-                  <li className="error">
-                    Layout failed: {layoutError}
-                  </li>
-                )}
-                {diagram.errors.slice(0, 4).map((e, i) => (
-                  <li key={i} className={e.severity} onClick={() => editorRef.current?.revealLine(e.line)}>
-                    <b>Line {e.line}</b> {e.message}
-                  </li>
-                ))}
-                {diagram.errors.length > 4 && <li className="more">+{diagram.errors.length - 4} more</li>}
-              </ul>
+          <button className="btn ghost" onClick={() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))}>
+            {theme === 'light' ? 'Dark' : 'Light'}
+          </button>
+          <button className="btn ghost" onClick={onShare} title="Copy share link (⌘S)">
+            Share
+          </button>
+          <div className="menu-wrap">
+            <button className="btn primary" onClick={() => setExportOpen((o) => !o)} disabled={!layout}>
+              Export
+            </button>
+            {exportOpen && (
+              <>
+                <div className="menu-scrim" onClick={() => setExportOpen(false)} />
+                <div className="menu" role="menu">
+                  <button onClick={() => doExport('png')}>Download PNG</button>
+                  <button onClick={() => doExport('svg')}>Download SVG</button>
+                  <button onClick={() => doExport('copy-png')}>Copy image</button>
+                  <button onClick={() => doExport('copy-code')}>Copy code</button>
+                </div>
+              </>
             )}
           </div>
-        </section>
+        </header>
 
-        <div className="splitter" onPointerDown={startSplitDrag} role="separator" aria-orientation="vertical" />
-
-        <section className="pane canvas-pane">
-          <Canvas
-            ref={canvasRef}
-            contentWidth={svgW}
-            contentHeight={svgH}
-            onBackgroundClick={() => setSelectedLine(undefined)}
-          >
-            {layout && (
-              <DiagramSvg
-                ref={svgRef}
-                layout={layout}
-                theme={theme}
-                title={diagram.title}
-                selectedLine={selectedLine}
-                onNodeClick={(line) => {
-                  setSelectedLine(line);
-                  editorRef.current?.revealLine(line);
-                }}
-              />
-            )}
-          </Canvas>
-          {layout && layout.nodes.length === 0 && (
-            <div className="empty">
-              <p>Start typing on the left to draw.</p>
-              <code>Client &gt; Server &gt; Database</code>
+        <main className="main" ref={mainRef}>
+          <section className="pane editor-pane">
+            <div className="pane-header">
+              {workspace.enabled ? (
+                <label className="file-picker">
+                  <span className="file-name">{workspace.file ?? '…'}.lw</span>
+                  <select
+                    value={workspace.file ?? ''}
+                    aria-label="Open diagram"
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '__new') {
+                        const name = window.prompt('Name the new diagram');
+                        if (name?.trim()) void workspace.create(name, `title ${name.trim()}\ndirection right\n\n`);
+                      } else void workspace.open(v);
+                    }}
+                  >
+                    {workspace.files.map((f) => (
+                      <option key={f.name} value={f.name}>
+                        {f.name}.lw
+                      </option>
+                    ))}
+                    <option value="__new">New diagram…</option>
+                  </select>
+                </label>
+              ) : (
+                <span className="file-name">{slugify(diagram.title)}.lw</span>
+              )}
+              <span>{SAVE_LABEL[workspace.status]}</span>
             </div>
-          )}
-          {showHelp && <HelpPanel theme={theme} onClose={() => setShowHelp(false)} />}
-        </section>
-      </main>
+            <Editor ref={editorRef} value={code} onChange={setCode} errors={diagram.errors} />
+            <div className={`status ${hardErrors.length ? 'has-errors' : diagram.errors.length ? 'has-warnings' : ''}`}>
+              {diagram.errors.length === 0 && !layoutError ? (
+                <span className="ok">
+                  <span>
+                    {diagram.nodes.length} nodes, {diagram.edges.length} connections
+                  </span>
+                  <span className="status-clean">No issues</span>
+                </span>
+              ) : (
+                <ul>
+                  {layoutError && (
+                    <li className="error">
+                      Layout failed: {layoutError}
+                    </li>
+                  )}
+                  {diagram.errors.slice(0, 4).map((e, i) => (
+                    <li key={i} className={e.severity} onClick={() => editorRef.current?.revealLine(e.line)}>
+                      <b>Line {e.line}</b> {e.message}
+                    </li>
+                  ))}
+                  {diagram.errors.length > 4 && <li className="more">+{diagram.errors.length - 4} more</li>}
+                </ul>
+              )}
+            </div>
+          </section>
 
-      {/* Off-screen copy with a solid background, used for exports. */}
-      <div className="export-host" aria-hidden>
-        {layout && <DiagramSvg ref={exportSvgRef} layout={layout} theme={theme} title={diagram.title} withBackground />}
+          <div className="splitter" onPointerDown={startSplitDrag} role="separator" aria-orientation="vertical" />
+
+          <section className="pane canvas-pane">
+            <Canvas
+              ref={canvasRef}
+              contentWidth={svgW}
+              contentHeight={svgH}
+              onBackgroundClick={() => setSelectedLine(undefined)}
+            >
+              {layout && (
+                <DiagramSvg
+                  ref={svgRef}
+                  layout={layout}
+                  theme={theme}
+                  title={diagram.title}
+                  selectedLine={selectedLine}
+                  onNodeClick={(line) => {
+                    setSelectedLine(line);
+                    editorRef.current?.revealLine(line);
+                  }}
+                />
+              )}
+            </Canvas>
+            {layout && layout.nodes.length === 0 && (
+              <div className="empty">
+                <p>Start typing on the left to draw.</p>
+                <code>Client &gt; Server &gt; Database</code>
+              </div>
+            )}
+            {showHelp && <HelpPanel theme={theme} onClose={() => setShowHelp(false)} />}
+          </section>
+        </main>
+
+        {/* Off-screen copy with a solid background, used for exports. */}
+        <div className="export-host" aria-hidden>
+          {layout && <DiagramSvg ref={exportSvgRef} layout={layout} theme={theme} title={diagram.title} withBackground />}
+        </div>
+
+        {toast && <div className="toast">{toast}</div>}
       </div>
-
-      {toast && <div className="toast">{toast}</div>}
-    </div>
+    </IconDrawerContext.Provider>
   );
 }

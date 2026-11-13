@@ -1,8 +1,7 @@
-import { forwardRef } from 'react';
-import type { LayoutResult, Point, PositionedEdge, PositionedNode } from '../layout/layout';
-import { NODE_METRICS, midpoint } from '../layout/layout';
-import { resolveIcon } from './icons';
-import { NodeIcon } from './NodeIcon';
+import { forwardRef, useContext } from 'react';
+import type { LayoutResult, Point, PositionedEdge, PositionedNode } from '../layout/core';
+import { NODE_METRICS, midpoint } from '../layout/core';
+import { IconDrawerContext } from './iconContext';
 import { THEMES, resolveColor, tint, type DiagramTheme, type ThemeName } from './theme';
 
 const PAD = 32;
@@ -78,7 +77,7 @@ function Group({
   onClick?: (line: number) => void;
 }) {
   const accent = resolveColor(n.def.color, t.mode);
-  const icon = resolveIcon(n.def.icon);
+  const icon = useContext(IconDrawerContext)(n.def.icon);
   const stroke = accent ?? t.groupStroke;
   return (
     <g
@@ -96,7 +95,13 @@ function Group({
         strokeDasharray={accent ? undefined : '5 4'}
       />
       {icon && (
-        <NodeIcon icon={icon} x={icon.kind === 'brand' ? 10 : 12} y={icon.kind === 'brand' ? 8 : 11} size={icon.kind === 'brand' ? 20 : 16} color={accent ?? t.mutedText} strokeWidth={2} />
+        icon.draw({
+          x: icon.kind === 'brand' ? 10 : 12,
+          y: icon.kind === 'brand' ? 8 : 11,
+          size: icon.kind === 'brand' ? 20 : 16,
+          color: accent ?? t.mutedText,
+          strokeWidth: 2,
+        })
       )}
       <text
         x={icon ? 36 : 14}
@@ -123,7 +128,7 @@ function Node({
   onClick?: (line: number) => void;
 }) {
   const accent = resolveColor(n.def.color, t.mode);
-  const icon = resolveIcon(n.def.icon);
+  const icon = useContext(IconDrawerContext)(n.def.icon);
   const { width: w, height: h } = n;
   const selStroke = t.selection;
   const common = {
@@ -153,7 +158,7 @@ function Node({
                 strokeWidth={selected ? 2 : 1.5}
               />
             )}
-            <NodeIcon icon={icon} x={tx} y={0} size={tile} color={color} />
+            {icon.draw({ x: tx, y: 0, size: tile, color })}
           </>
         ) : (
           <>
@@ -168,7 +173,7 @@ function Node({
               strokeWidth={selected ? 2 : 1}
             />
             {icon ? (
-              <NodeIcon icon={icon} x={tx + 11} y={11} size={22} color={color} />
+              icon.draw({ x: tx + 11, y: 11, size: 22, color })
             ) : (
               <text x={w / 2} y={tile / 2 + 5} textAnchor="middle" fontSize={14} fill={t.mutedText}>
                 ?

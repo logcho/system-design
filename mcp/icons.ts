@@ -17,7 +17,7 @@ import {
 /** Node-side icon catalog: same resolution rules as the browser, read from disk. */
 
 const require = createRequire(import.meta.url);
-const iconsRoot = path.dirname(path.dirname(require.resolve('@likec4/icons/aws/lambda')));
+export const iconsRoot = path.dirname(path.dirname(require.resolve('@likec4/icons/aws/lambda')));
 
 const files = {} as Record<Pack, string[]>;
 for (const pack of PACKS) {

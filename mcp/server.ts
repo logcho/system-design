@@ -17,6 +17,7 @@ import { ConflictError, listDiagrams, readDiagram, toDiagramName, writeDiagram }
 import { analyze, formatAnalysis } from './analyze';
 import { SYNTAX_GUIDE } from './guide';
 import { ICON_COUNTS, PACK_LABEL, searchIcons } from './icons';
+import { renderDiagram } from './render';
 
 const DIR = path.resolve(process.env.LINEWORK_DIR ?? fileURLToPath(new URL('../diagrams', import.meta.url)));
 const APP_URL = (process.env.LINEWORK_URL ?? 'http://localhost:5173').replace(/\/$/, '');
@@ -40,6 +41,7 @@ const server = new McpServer(
       `${ICON_COUNTS.tech} technology logos.`,
       'Call get_syntax_guide before writing your first diagram in a session. Use search_icons instead of guessing icon names.',
       'Every write returns problems (syntax errors, unknown icons, undeclared components): fix them before you finish.',
+      'After writing, call render_diagram to look at the result and improve the layout (crossings, stray boxes, crowding).',
       `Diagrams are saved as .lw files in ${DIR}; the user can watch them update live at ${APP_URL}.`,
     ].join(' '),
   },
@@ -184,6 +186,42 @@ server.registerTool(
     const hits = searchIcons(query, pack, limit ?? 15);
     if (!hits.length) return text(`No icons match "${query}". Try a shorter or different word.`);
     return text(hits.map((h) => `${h.name}  (${PACK_LABEL[h.pack]})`).join('\n'));
+  },
+);
+
+server.registerTool(
+  'render_diagram',
+  {
+    title: 'Render a diagram to an image',
+    description:
+      'Render a diagram exactly as the app draws it and return a PNG, so you can check the layout: crossing ' +
+      'connections, components far from their neighbours, crowded groups, unreadable labels. Also reports the number ' +
+      'of crossing connections. Typical fixes: reorder declarations or connections, change direction, regroup ' +
+      'components, or split a large diagram.',
+    inputSchema: {
+      name: z.string().describe('Diagram name'),
+      theme: z.enum(['light', 'dark']).optional().describe('Color theme (default light)'),
+    },
+    annotations: { readOnlyHint: true },
+  },
+  async ({ name, theme }) => {
+    const n = nameArg(name);
+    const doc = await readDiagram(DIR, n);
+    if (!doc) return fail(`No diagram named "${n}".`);
+    const r = await renderDiagram(doc.code, { theme: theme ?? 'light' });
+    const a = analyze(doc.code);
+    const summary = [
+      `${n} (version ${doc.version}): ${Math.round(r.width)}×${Math.round(r.height)} px, ` +
+        `${r.crossings} crossing connection pair${r.crossings === 1 ? '' : 's'}.`,
+      formatAnalysis(a),
+      `View live: ${viewUrl(n)}`,
+    ].join('\n');
+    return {
+      content: [
+        { type: 'image' as const, data: r.png.toString('base64'), mimeType: 'image/png' },
+        { type: 'text' as const, text: summary },
+      ],
+    };
   },
 );
 

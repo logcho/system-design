@@ -38,4 +38,4 @@ Trips > Trips DB
 Trips --> Events: trip.completed
 Trips > Payments: charge
 Trips --> Notifications: driver arriving
-Notifications --> Rider App: push
+Rider App <-- Notifications: push
