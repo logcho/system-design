@@ -39,40 +39,47 @@ Queue > Worker
 
 ## Getting started
 
+Try it with your agent (see below), or run it from a checkout:
+
 ```bash
 npm install
 npm run dev
 ```
 
-Other scripts: `npm test`, `npm run build`, `npm run typecheck`, `npm run mcp` (start the MCP server on stdio).
+Working on Linework itself: the repo's `.mcp.json` registers the MCP server from source (`tsx mcp/cli.ts --no-app`), and `npm run dev` serves the app with live reload on the same `diagrams/` folder.
+
+Other scripts: `npm test`, `npm run build` (app in `dist/app`, CLI in `dist/node`), `npm run typecheck`, `npm run mcp` (MCP server from source).
+
+Releasing: `npm version patch && git push --follow-tags` publishes to npm through the Release workflow (needs the `NPM_TOKEN` repository secret).
 
 ## Let an AI agent draw: the MCP server
 
-Linework ships an [MCP](https://modelcontextprotocol.io) server, so Claude (or any MCP client) can create and edit diagrams while you watch them draw in the app.
+Linework ships as an [MCP](https://modelcontextprotocol.io) server on npm, [`linework-mcp`](https://www.npmjs.com/package/linework-mcp), so Claude (or any MCP client) can create and edit diagrams while you watch them draw.
 
-Diagrams are plain `.lw` files in `diagrams/`. The dev server watches that folder, so changes from any source (the app, an agent, your text editor) show up live in the browser, and your edits in the browser are saved back to the file.
-
-**With Claude Code**, the repo's `.mcp.json` registers the server. Open Claude Code in this folder and approve the `linework` server, or add it by hand:
+**Claude Code**, from the project you want diagrams in:
 
 ```bash
-claude mcp add linework -- npx tsx mcp/server.ts
+claude mcp add linework -- npx -y linework-mcp
 ```
 
-Then run the app with `npm run dev` and ask for a design, e.g. *"Draw the backend for a ride-sharing app on AWS."*
+Then ask for a design, e.g. *"Draw the backend for a ride-sharing app on AWS, then a sequence diagram of booking a ride."* The server also serves the Linework app at **http://localhost:5173** (or the next free port): open it to watch diagrams appear and to edit them yourself. Every tool result includes a link.
 
-**Other MCP clients** (e.g. Claude Desktop) can run the same command. Set `LINEWORK_DIR` to an absolute diagrams folder and `LINEWORK_URL` if the app isn't on `http://localhost:5173`:
+Diagrams are plain `.lw` files in `./diagrams`, so they can be committed and reviewed like code. Edits from the app, the agent or your text editor all show up live.
+
+**Other MCP clients** (e.g. Claude Desktop) run the same command; give it a diagrams folder, since desktop apps don't start in your project:
 
 ```json
 {
   "mcpServers": {
     "linework": {
       "command": "npx",
-      "args": ["tsx", "/path/to/linework/mcp/server.ts"],
-      "env": { "LINEWORK_DIR": "/path/to/linework/diagrams" }
+      "args": ["-y", "linework-mcp", "--dir", "/path/to/your/diagrams"]
     }
   }
 }
 ```
+
+Options: `--dir <path>` (diagrams folder), `--port <n>` (app port, default 5173), `--no-app` (MCP only). `npx linework-mcp app` serves just the app, to browse and edit diagrams without an agent.
 
 | Tool | What it does |
 | --- | --- |
@@ -153,8 +160,8 @@ Connectors must have spaces on both sides, so names like `auth-service` work. No
 
 ```
 diagrams/     your diagrams as .lw files (shared by the app and the MCP server)
-mcp/          MCP server: tools, syntax guide, validation, icon search, PNG rendering
-server/       file store and the dev-server plugin that syncs diagrams/ live
+mcp/          MCP server and CLI: tools, syntax guide, validation, icon search, PNG rendering
+server/       file store, workspace API with live events, app server, Vite plugin
 src/
   dsl/        parser + types for the diagram language (pure, unit tested)
   icons/      icon name resolution shared by the browser and Node

@@ -7,5 +7,8 @@ import { lineworkWorkspace } from './server/vitePlugin';
 const diagramsDir = process.env.LINEWORK_DIR ?? fileURLToPath(new URL('./diagrams', import.meta.url));
 
 export default defineConfig({
-  plugins: [react(), lineworkWorkspace(diagramsDir)],
+  // Tests load this config too; they don't need the workspace API.
+  plugins: [react(), ...(process.env.VITEST ? [] : [lineworkWorkspace(diagramsDir)])],
+  // The npm package serves the app from dist/app (see mcp/cli.ts).
+  build: { outDir: 'dist/app', emptyOutDir: true },
 });

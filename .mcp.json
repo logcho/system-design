@@ -3,7 +3,11 @@
     "linework": {
       "type": "stdio",
       "command": "npx",
-      "args": ["tsx", "mcp/server.ts"]
+      "args": [
+        "tsx",
+        "mcp/cli.ts",
+        "--no-app"
+      ]
     }
   }
 }
