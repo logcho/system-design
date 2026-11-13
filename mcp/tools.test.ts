@@ -51,6 +51,9 @@ describe('linework MCP server', () => {
       'write_diagram',
     ]);
     expect(client.getInstructions()).toMatch(/get_syntax_guide/);
+    // The server reports the package.json version (not a hard-coded copy).
+    const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')) as { version: string };
+    expect(client.getServerVersion()?.version).toBe(pkg.version);
   });
 
   it('creates a diagram, reports problems, and writes the file', async () => {
