@@ -1,7 +1,8 @@
 name: Release
 
 # Publishes linework-mcp to npm when a version tag is pushed:
-#   npm version patch && git push --follow-tags
+#   npm version patch && git push --follow-tags     (from main)
+# or by hand for an existing tag: Actions → Release → Run workflow → tag.
 #
 # Uses npm trusted publishing: npm verifies this workflow's GitHub identity
 # (OIDC), so no npm token is stored anywhere. Configured on npmjs.com under
@@ -10,6 +11,11 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing version tag to publish, e.g. v0.1.1'
+        required: true
 
 permissions:
   contents: read
@@ -18,28 +24,35 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      # No registry-url here: it would write a placeholder auth token to .npmrc,
+      # which npm can pick over the OIDC identity and then fail with a 404.
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: npm
-          registry-url: https://registry.npmjs.org
+          # This job can publish: don't restore a dependency cache another run could have written.
+          package-manager-cache: false
       # Trusted publishing needs npm 11.5.1 or newer.
-      - run: npm install -g npm@11
+      - run: npm install -g npm@11 && npm --version
       - run: npm ci
 
       - name: Check the tag matches package.json
         id: version
         run: |
           version="$(node -p "require('./package.json').version")"
-          test "v${version}" = "${GITHUB_REF_NAME}"
+          test "v${version}" = "${TAG}"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           if npm view "linework-mcp@${version}" version >/dev/null 2>&1; then
             echo "published=true" >> "$GITHUB_OUTPUT"
             echo "::notice::linework-mcp@${version} is already on npm; nothing to publish."
           fi
 
-      # prepublishOnly builds and tests before anything is uploaded.
+      # prepublishOnly builds and tests before anything is uploaded. Verbose
+      # logs show whether npm accepted the OIDC identity if publishing fails.
       - if: steps.version.outputs.published != 'true'
-        run: npm publish --access public
+        run: npm publish --access public --loglevel verbose
