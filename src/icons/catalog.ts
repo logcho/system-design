@@ -247,6 +247,9 @@ export function createBrandCatalog(files: Record<Pack, string[]>): BrandCatalog 
       if (file === 'index') continue;
       const prefix = PACK_PREFIX[pack];
       const ref: BrandRef = { name: file.startsWith(prefix) ? file : prefix + file, pack, file };
+      // The tech pack also ships logos named like "aws-lambda"; the official
+      // cloud architecture icon (earlier in PACKS) keeps the name.
+      if (byName.has(ref.name)) continue;
       byName.set(ref.name, ref);
       index(ref.name, ref);
     }

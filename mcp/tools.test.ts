@@ -119,6 +119,9 @@ describe('linework MCP server', () => {
     expect(textOf(await call('search_icons', { query: 'cosmos' }))).toMatch(/azure-cosmos-db/);
     expect(textOf(await call('search_icons', { query: 'pub sub', pack: 'gcp' }))).toMatch(/gcp-pub-sub/);
     expect(textOf(await call('search_icons', { query: 'postgres' }))).toMatch(/postgresql/);
+    // Multi-word queries still find something when only some words match.
+    expect(textOf(await call('search_icons', { query: 'websocket api', pack: 'aws' }))).toMatch(/aws-api-gateway/);
+    expect(textOf(await call('search_icons', { query: 'push notification' }))).toMatch(/notification/);
   });
 
   it('renders a diagram to a PNG and counts crossings', async () => {

@@ -156,7 +156,8 @@ export function parseSequence(source: string): SequenceDiagram {
       return;
     }
 
-    if (text.includes('{') || text.includes('}')) {
+    // Braces inside a connection's label (e.g. a JSON payload) are just text.
+    if ((text.includes('{') || text.includes('}')) && !CONNECTOR_RE.test(` ${text} `)) {
       err(line, `Blocks start with ${FRAGMENT_KINDS.join(', ')} and end with "}"`);
       return;
     }

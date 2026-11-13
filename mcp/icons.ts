@@ -47,12 +47,14 @@ interface Entry {
   key: string;
   /** Key without the vendor prefix, so "lambda" matches "aws-lambda" fully. */
   bare: string;
+  /** The name's words ("aws-api-gateway" → aws, api, gateway), for multi-word queries. */
+  words: string[];
 }
 
 const entries: Entry[] = [];
 const add = (name: string, pack: SearchPack) => {
   const key = norm(name);
-  entries.push({ name, pack, key, bare: key.replace(/^(aws|azure|gcp)/, '') });
+  entries.push({ name, pack, key, bare: key.replace(/^(aws|azure|gcp)/, ''), words: name.toLowerCase().split(/[^a-z0-9]+/) });
 };
 for (const pack of PACKS) for (const name of brand.names[pack]) add(name, pack);
 for (const alias of BRAND_ALIAS_NAMES) {
@@ -80,6 +82,12 @@ export function searchIcons(query: string, pack?: SearchPack, limit = 15): { nam
     else if (e.key.startsWith(q) || e.bare.startsWith(q)) score = 80;
     else if (e.key.includes(q)) score = 60;
     else if (tokens.length > 1 && tokens.every((t) => e.key.includes(t))) score = 40;
+    else if (tokens.length > 1) {
+      // Some of the words match ("websocket api", "push notification"): rank by how many
+      // query words start one of the name's words, so "api" finds api-gateway, not data-pipeline.
+      const hits = tokens.filter((t) => e.words.some((w) => w.startsWith(t))).length;
+      if (hits) score = (30 * hits) / tokens.length;
+    }
     if (!score) continue;
     scored.push({ e, score: score - e.name.length / 100 });
   }

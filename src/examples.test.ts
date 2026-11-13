@@ -31,6 +31,13 @@ describe('resolveIcon', () => {
     expect(resolveIcon(input)).toMatchObject({ kind, name });
   });
 
+  it('prefers official cloud icons over same-named tech logos', () => {
+    for (const name of ['aws-lambda', 'aws-api-gateway', 'aws-rds', 'aws-ec2', 'azure-sql-database']) {
+      const icon = resolveIcon(name);
+      expect(icon?.kind === 'brand' && icon.entry.pack, name).toBe(name.startsWith('aws') ? 'aws' : 'azure');
+    }
+  });
+
   it('returns undefined for unknown names', () => {
     expect(resolveIcon('aws-not-a-service')).toBeUndefined();
     expect(resolveIcon('definitely-not-an-icon')).toBeUndefined();

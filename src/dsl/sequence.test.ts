@@ -70,6 +70,12 @@ describe('parseSequence', () => {
     expect((d.items[0] as Fragment).sections[0].label).toBe('user is signed in');
   });
 
+  it('allows braces in message labels', () => {
+    const d = seq('A > B: POST /trips {pickup, dropoff}\nB --> A: {"id": 7}');
+    expect(d.errors).toEqual([]);
+    expect(allMessages(d.items).map((m) => m.label)).toEqual(['POST /trips {pickup, dropoff}', '{"id": 7}']);
+  });
+
   it('parses notes', () => {
     const d = seq('A > B\nnote over A, B: shared secret\nnote left of A: client\nnote right of B: server');
     expect(d.items.slice(1)).toMatchObject([

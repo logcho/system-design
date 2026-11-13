@@ -50,6 +50,12 @@ describe('parse', () => {
     expect(d.edges[0]).toMatchObject({ from: 'auth-service', to: 'user-db', label: 'https://example.com' });
   });
 
+  it('allows braces in connection labels', () => {
+    const d = parse('A > B: {"event": "created"}');
+    expect(d.errors).toEqual([]);
+    expect(d.edges[0].label).toBe('{"event": "created"}');
+  });
+
   it('reports structural errors with line numbers', () => {
     const d = parse('G {\n  A\n}\n}\nH {\n  B');
     expect(d.errors.map((e) => [e.line, e.severity])).toEqual([
