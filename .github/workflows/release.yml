@@ -1,13 +1,18 @@
 name: Release
 
-# Publishes linework-mcp to npm when a version tag is pushed:
+# Stages a release of linework-mcp on npm when a version tag is pushed:
 #   npm version patch && git push --follow-tags     (from main)
 # or by hand for an existing tag: Actions → Release → Run workflow → tag.
+#
+# A staged version is not public until a maintainer approves it with 2FA:
+#   npm stage list linework-mcp
+#   npm stage approve <stage-id>
+# (or approve it on npmjs.com). So nothing reaches users without a person.
 #
 # Uses npm trusted publishing: npm verifies this workflow's GitHub identity
 # (OIDC), so no npm token is stored anywhere. Configured on npmjs.com under
 # linework-mcp → Settings → Trusted Publisher (repo logcho/system-design,
-# workflow release.yml). Packages get provenance attestations automatically.
+# workflow release.yml, permission "stage publish"). Provenance is automatic.
 on:
   push:
     tags: ['v*']
@@ -53,6 +58,13 @@ jobs:
           fi
 
       # prepublishOnly builds and tests before anything is uploaded. Verbose
-      # logs show whether npm accepted the OIDC identity if publishing fails.
-      - if: steps.version.outputs.published != 'true'
-        run: npm publish --access public --loglevel verbose
+      # logs show whether npm accepted the OIDC identity if staging fails.
+      - name: Stage the release on npm
+        if: steps.version.outputs.published != 'true'
+        run: npm stage publish --access public --loglevel verbose
+
+      - name: Explain how to approve
+        if: steps.version.outputs.published != 'true'
+        run: >-
+          echo "::notice::linework-mcp@${{ steps.version.outputs.version }} is staged on npm.
+          Approve it with 'npm stage list linework-mcp' then 'npm stage approve <stage-id>', or on npmjs.com."

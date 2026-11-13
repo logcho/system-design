@@ -50,7 +50,7 @@ Working on Linework itself: the repo's `.mcp.json` registers the MCP server from
 
 Other scripts: `npm test`, `npm run build` (app in `dist/app`, CLI in `dist/node`), `npm run typecheck`, `npm run mcp` (MCP server from source).
 
-Releasing: from `main`, `npm version patch && git push --follow-tags`. To retry an existing tag, run the Release workflow by hand from the Actions tab. The Release workflow publishes the tagged version to npm with [trusted publishing](https://docs.npmjs.com/trusted-publishers) (no token; provenance included) and skips versions that are already published.
+Releasing: from `main`, run `npm version patch && git push --follow-tags`. The Release workflow builds, tests and **stages** the version on npm using [trusted publishing](https://docs.npmjs.com/trusted-publishers) (no stored token; provenance included). A maintainer then makes it public with 2FA: `npm stage list linework-mcp`, then `npm stage approve <stage-id>` (or approve on npmjs.com). Versions already on npm are skipped; to retry an existing tag, run the Release workflow by hand from the Actions tab.
 
 ## Let an AI agent draw: the MCP server
 
