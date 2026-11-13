@@ -237,7 +237,7 @@ export function createLineworkServer({ dir: DIR, appUrl }: ServerOptions): McpSe
       const r = await renderDiagram(doc.code, { theme: theme ?? 'light' });
       const a = analyze(doc.code);
       const crossings =
-        r.layout.kind === 'flow' ? `, ${r.crossings} crossing connection pair${r.crossings === 1 ? '' : 's'}` : '';
+        r.layout.kind !== 'sequence' ? `, ${r.crossings} crossing connection pair${r.crossings === 1 ? '' : 's'}` : '';
       const summary = [
         `${n} (version ${doc.version}): ${Math.round(r.width)}×${Math.round(r.height)} px${crossings}.`,
         formatAnalysis(a),

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { parseDocument } from './dsl/document';
+import { iconHolders, parseDocument } from './dsl/document';
 import { allMessages } from './dsl/sequence';
 import { layoutDocument, type DocumentLayout } from './layout/layout';
 import { DocumentSvg } from './render/DocumentSvg';
@@ -86,8 +86,7 @@ export default function App() {
 
   const doc = useMemo(() => {
     const d = parseDocument(code);
-    const withIcons = d.kind === 'flow' ? d.diagram.nodes : d.diagram.participants;
-    for (const n of withIcons) {
+    for (const n of iconHolders(d)) {
       if (n.icon && !resolveIcon(n.icon)) {
         d.diagram.errors.push({ line: n.line, severity: 'warning', message: `Unknown icon "${n.icon}" (open Syntax to browse icons)` });
       }
@@ -99,7 +98,9 @@ export default function App() {
   const counts =
     doc.kind === 'flow'
       ? `${doc.diagram.nodes.length} nodes, ${doc.diagram.edges.length} connections`
-      : `${doc.diagram.participants.length} participants, ${allMessages(doc.diagram.items).length} messages`;
+      : doc.kind === 'sequence'
+        ? `${doc.diagram.participants.length} participants, ${allMessages(doc.diagram.items).length} messages`
+        : `${doc.diagram.entities.length} tables, ${doc.diagram.relations.length} relationships`;
   const hardErrors = diagram.errors.filter((e) => e.severity === 'error');
 
   useEffect(() => {
@@ -219,7 +220,12 @@ export default function App() {
   const svgW = layout ? Math.ceil(layout.layout.width + 64) : 0;
   const svgH = layout ? Math.ceil(layout.layout.height + 64 + (diagram.title ? 40 : 0)) : 0;
   const isEmpty =
-    !!layout && (layout.kind === 'flow' ? layout.layout.nodes.length === 0 : layout.layout.participants.length === 0);
+    !!layout &&
+    (layout.kind === 'flow'
+      ? layout.layout.nodes.length === 0
+      : layout.kind === 'sequence'
+        ? layout.layout.participants.length === 0
+        : layout.layout.entities.length === 0);
 
   return (
     <IconDrawerContext.Provider value={drawBrowserIcon}>
@@ -296,7 +302,7 @@ export default function App() {
               )}
               <span>{SAVE_LABEL[workspace.status]}</span>
             </div>
-            <Editor ref={editorRef} value={code} onChange={setCode} errors={diagram.errors} />
+            <Editor ref={editorRef} value={code} onChange={setCode} errors={diagram.errors} kind={doc.kind} />
             <div className={`status ${hardErrors.length ? 'has-errors' : diagram.errors.length ? 'has-warnings' : ''}`}>
               {diagram.errors.length === 0 && !layoutError ? (
                 <span className="ok">

@@ -20,6 +20,8 @@ export interface DiagramTheme {
   groupStroke: string;
   noteFill: string;
   noteStroke: string;
+  /** Header band of ER tables. */
+  entityHeader: string;
 }
 
 const FONT = "Geist, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -46,6 +48,7 @@ export const THEMES: Record<ThemeName, DiagramTheme> = {
     groupStroke: '#dadde3',
     noteFill: '#fff8dc',
     noteStroke: '#ecd98f',
+    entityHeader: '#f1f3f6',
   },
   dark: {
     mode: 'dark',
@@ -66,6 +69,7 @@ export const THEMES: Record<ThemeName, DiagramTheme> = {
     groupStroke: '#2c2f37',
     noteFill: '#2a2618',
     noteStroke: '#5c5230',
+    entityHeader: '#22242b',
   },
 };
 

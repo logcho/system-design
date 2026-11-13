@@ -9,15 +9,47 @@ interface Props {
   value: string;
   onChange: (v: string) => void;
   errors: ParseError[];
+  /** Diagram kind, for kind-specific highlighting (ER column lines). */
+  kind?: string;
 }
 
 const LINE_HEIGHT = 21;
 const CONNECTOR = /(\s)(<-->|<--|-->|<->|<>|->|<-|--|>|<|-)(?=\s)/g;
 
 /** Tiny line-oriented highlighter for the diagram language. */
-function highlightLine(line: string, key: number): React.ReactNode {
+const ER_MODIFIER = /^(pk|fk|unique|null|nullable)$/i;
+
+/** ER column line inside a table: name, type, then modifiers like pk/fk. */
+function highlightColumn(line: string, key: number): React.ReactNode | undefined {
+  const m = /^(\s+)(\S+)((?:\s+\S+)*)(\s*(?:\/\/.*)?)$/.exec(line);
+  if (!m || /[{}]/.test(line) || /\s(<-->|<--|-->|<->|<>|->|<-|--|>|<|-)\s/.test(` ${line} `)) return undefined;
+  const words = m[3].split(/(\s+)/);
+  let typed = false;
+  return (
+    <div key={key}>
+      {m[1]}
+      <span className="tk-name">{m[2]}</span>
+      {words.map((w, i) => {
+        if (!w.trim()) return w;
+        if (ER_MODIFIER.test(w)) return <span key={i} className="tk-kw">{w}</span>;
+        if (!typed) {
+          typed = true;
+          return <span key={i} className="tk-attr">{w}</span>;
+        }
+        return w;
+      })}
+      {m[4] && <span className="tk-comment">{m[4]}</span>}
+    </div>
+  );
+}
+
+function highlightLine(line: string, key: number, kind?: string): React.ReactNode {
   // Zero-width space keeps empty rows at full line height.
   if (!line) return <div key={key}>{'​'}</div>;
+  if (kind === 'er') {
+    const column = highlightColumn(line, key);
+    if (column) return column;
+  }
   const out: React.ReactNode[] = [];
   let rest = line;
   let comment = '';
@@ -112,7 +144,7 @@ function highlightLine(line: string, key: number): React.ReactNode {
   return <div key={key}>{out.length ? out : '​'}</div>;
 }
 
-export const Editor = forwardRef<EditorHandle, Props>(function Editor({ value, onChange, errors }, ref) {
+export const Editor = forwardRef<EditorHandle, Props>(function Editor({ value, onChange, errors, kind }, ref) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lines = useMemo(() => value.split('\n'), [value]);
@@ -197,7 +229,7 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor({ value, o
           <pre className="highlight" aria-hidden>
             {lines.map((l, i) => (
               <div key={i} className={errorByLine.has(i + 1) ? `hl-row ${errorByLine.get(i + 1)!.severity}` : 'hl-row'}>
-                {highlightLine(l, i)}
+                {highlightLine(l, i, kind)}
               </div>
             ))}
           </pre>

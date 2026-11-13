@@ -1,4 +1,4 @@
-import { parseDocument, type DiagramKind } from '../src/dsl/document';
+import { iconHolders, parseDocument, type DiagramKind } from '../src/dsl/document';
 import { allMessages, type SequenceItem } from '../src/dsl/sequence';
 import { resolveIcon, suggestIcons } from './icons';
 
@@ -22,8 +22,7 @@ export function analyze(code: string): Analysis {
   const doc = parseDocument(code);
   const d = doc.diagram;
   const problems = d.errors.map((e) => ({ line: e.line, severity: e.severity, message: e.message }));
-  const withIcons = doc.kind === 'flow' ? doc.diagram.nodes : doc.diagram.participants;
-  for (const n of withIcons) {
+  for (const n of iconHolders(doc)) {
     if (n.icon && !resolveIcon(n.icon)) {
       const close = suggestIcons(n.icon);
       problems.push({
@@ -46,6 +45,18 @@ export function analyze(code: string): Analysis {
       summary: `${components} components, ${groups} groups, ${doc.diagram.edges.length} connections.`,
       problems,
       undeclared: nodes.filter((n) => n.implicit).map((n) => n.id),
+    };
+  }
+  if (doc.kind === 'er') {
+    const { entities, relations } = doc.diagram;
+    const columns = entities.reduce((n, e) => n + e.columns.length, 0);
+    return {
+      kind: 'er',
+      title: d.title,
+      components: entities.length,
+      summary: `ER diagram: ${entities.length} tables, ${columns} columns, ${relations.length} relationships.`,
+      problems,
+      undeclared: entities.filter((e) => e.implicit).map((e) => e.id),
     };
   }
   const { participants, items } = doc.diagram;
@@ -73,8 +84,11 @@ export function formatAnalysis(a: Analysis): string {
       a.kind === 'flow'
         ? `Used in connections but never declared (no icon or group): ${a.undeclared.join(', ')}. ` +
             'If any of these is a typo of a declared name, it shows up as a stray box.'
-        : `Participants only named in messages, never declared (no icon): ${a.undeclared.join(', ')}. ` +
-            'If any of these is a typo of a declared name, it shows up as an extra lifeline.',
+        : a.kind === 'sequence'
+          ? `Participants only named in messages, never declared (no icon): ${a.undeclared.join(', ')}. ` +
+            'If any of these is a typo of a declared name, it shows up as an extra lifeline.'
+          : `Tables only named in relationships, never declared with { }: ${a.undeclared.join(', ')}. ` +
+            'They are drawn as empty tables; declare them with their columns, or fix the name.',
     );
   }
   return lines.join('\n');

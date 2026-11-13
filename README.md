@@ -24,7 +24,7 @@ Queue > Worker
 ## Features
 
 - **Diagram as code** with live preview, syntax highlighting and inline errors
-- **Two kinds of diagram**: architecture/flow diagrams and sequence diagrams
+- **Three kinds of diagram**: architecture/flow diagrams, sequence diagrams and ER (database) diagrams
 - **Automatic layout** (ELK layered, orthogonal routing) with nested groups
 - **Official cloud icons**: ~300 AWS, ~600 Azure and ~200 Google Cloud architecture icons (`aws-lambda`, `azure-cosmos-db`, `gcp-bigquery`...)
 - **2,000+ tech logos** for databases and tools (`postgres`, `mongodb`, `redis`, `kafka`, `kubernetes`, `stripe`...)
@@ -141,6 +141,37 @@ note over API, Payments: idempotency key on every charge
 | `alt [label: x] { … } else [label: y] { … }` | Alternatives; also `loop`, `opt`, `par` (with `} and {`), `critical`, `break` |
 | `note over A, B: text` | Also `note left of A:` and `note right of A:` |
 | `autonumber` | Number every message |
+
+### ER diagrams
+
+Start the file with `diagram er`:
+
+```
+diagram er
+title Shop database
+
+users [icon: user] {
+  id uuid pk
+  email string unique
+  deleted_at timestamp null
+}
+orders {
+  id uuid pk
+  user_id uuid fk
+}
+
+orders.user_id > users.id: places
+```
+
+| Syntax | Meaning |
+| --- | --- |
+| `name [icon: …, color: …] { … }` | Table; one column per line: `name type`, then any of `pk`, `fk`, `unique`, `null` |
+| `a.col > b.col` | Many-to-one (crow's foot on `a`) |
+| `a.col < b.col` / `a.col - b.col` / `a.col <> b.col` | One-to-many / one-to-one / many-to-many |
+| `a.col --> b.col` | Dashed: optional relationship |
+| `a > b` | Table to table, when the column doesn't matter |
+
+Relationship lines attach to the referenced column rows. `direction` works as in flow diagrams.
 
 ### Icons
 

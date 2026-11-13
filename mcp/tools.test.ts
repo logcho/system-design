@@ -151,6 +151,23 @@ describe('linework MCP server', () => {
     expect(summary).not.toMatch(/crossing/);
   });
 
+  it('writes, validates and renders ER diagrams', async () => {
+    const r = await call('write_diagram', {
+      name: 'schema',
+      code: 'diagram er\nusers {\n  id uuid pk\n}\norders {\n  id uuid pk\n  user_id uuid fk\n}\norders.user_id > users.id\norders.coupon_id > coupons.id',
+    });
+    const t = textOf(r);
+    expect(t).toMatch(/ER diagram: 3 tables, 3 columns, 2 relationships/);
+    expect(t).toMatch(/Table "coupons" is not declared/);
+    expect(t).toMatch(/never declared with \{ \}: coupons/);
+
+    const img = (await client.callTool({ name: 'render_diagram', arguments: { name: 'schema' } })) as {
+      content: ({ type: 'image'; data: string } | { type: 'text'; text: string })[];
+    };
+    expect(img.content.some((c) => c.type === 'image')).toBe(true);
+    expect((img.content.find((c) => c.type === 'text') as { text: string }).text).toMatch(/crossing connection pair/);
+  });
+
   it('rejects names that escape the folder', async () => {
     const r = await call('write_diagram', { name: '../../etc/passwd', code: 'A' });
     expect(textOf(r)).toMatch(/etc-passwd\.lw/);

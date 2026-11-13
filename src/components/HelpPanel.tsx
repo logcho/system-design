@@ -46,6 +46,16 @@ const SEQUENCE: [string, string][] = [
   ['autonumber', 'Number every message'],
 ];
 
+const ER: [string, string][] = [
+  ['diagram er', 'First line: makes an ER diagram'],
+  ['users [icon: user] {\n  id uuid pk\n  email string unique\n  org_id uuid fk\n  bio text null\n}', 'Table: column, type, then pk fk unique null'],
+  ['orders.user_id > users.id', 'Many-to-one'],
+  ['users.id < orders.user_id', 'One-to-many'],
+  ['users.id - profiles.user_id', 'One-to-one'],
+  ['students <> courses', 'Many-to-many (tables or columns)'],
+  ['a.x --> b.y: label', 'Dashed: optional relationship'],
+];
+
 function SyntaxTable({ rows }: { rows: [string, string][] }) {
   return (
     <table className="syntax">
@@ -94,6 +104,9 @@ export function HelpPanel({ theme, onClose }: { theme: ThemeName; onClose: () =>
 
         <h3>Sequence diagrams</h3>
         <SyntaxTable rows={SEQUENCE} />
+
+        <h3>ER diagrams</h3>
+        <SyntaxTable rows={ER} />
 
         <h3>Colors</h3>
         <div className="swatches">

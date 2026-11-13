@@ -196,6 +196,63 @@ opt [label: token expired] {
 `,
   },
   {
+    name: 'Shop database (ER)',
+    code: `diagram er
+title Shop database
+
+users [icon: user, color: blue] {
+  id uuid pk
+  email string unique
+  name string
+  created_at timestamp
+}
+
+addresses {
+  id uuid pk
+  user_id uuid fk
+  line1 string
+  city string
+  country string
+}
+
+products [icon: package] {
+  id uuid pk
+  sku string unique
+  name string
+  price_cents int
+}
+
+orders [icon: receipt, color: green] {
+  id uuid pk
+  user_id uuid fk
+  shipping_address_id uuid fk
+  status string
+  placed_at timestamp
+}
+
+order_items {
+  order_id uuid pk fk
+  product_id uuid pk fk
+  quantity int
+  price_cents int
+}
+
+payments [icon: stripe] {
+  id uuid pk
+  order_id uuid fk unique
+  provider_ref string
+  refunded_at timestamp null
+}
+
+addresses.user_id > users.id
+orders.user_id > users.id: places
+orders.shipping_address_id --> addresses.id: ships to
+order_items.order_id > orders.id
+order_items.product_id > products.id
+payments.order_id - orders.id
+`,
+  },
+  {
     name: 'URL shortener',
     code: `title URL Shortener
 direction right

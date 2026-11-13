@@ -311,7 +311,7 @@ export function retreat(from: Point, to: Point, by: number): Point {
 }
 
 /** Polyline with rounded corners at each bend. */
-function roundedPath(pts: Point[], r: number): string {
+export function roundedPath(pts: Point[], r: number): string {
   if (pts.length < 2) return '';
   let d = `M${pts[0].x},${pts[0].y}`;
   for (let i = 1; i < pts.length - 1; i++) {
