@@ -4,6 +4,14 @@ export const SYNTAX_GUIDE = `# Linework diagram language
 A diagram is plain text. Layout is automatic: you describe components, groups
 and connections; never give coordinates.
 
+There are two kinds of diagram:
+- Flow diagrams (the default): architecture, infrastructure, data flow. Everything
+  below up to "Sequence diagrams" is about these.
+- Sequence diagrams: one request or process over time, between participants.
+  Start the file with "diagram sequence". See "Sequence diagrams" below.
+Choose a sequence diagram when the order of calls matters (auth flows, checkout,
+retries, webhooks); choose a flow diagram for how the system is built.
+
 ## Directives
 direction right            right (default) | down | left | up
 title Photo sharing on AWS shown above the diagram
@@ -59,7 +67,32 @@ When unsure of a name, call search_icons rather than guessing.
 - After writing, call render_diagram and look: fix crossings, stray boxes and long detours.
 - Keep one diagram to roughly 25 components; split bigger systems into several diagrams.
 
-## Example
+## Sequence diagrams
+diagram sequence             first line; makes this a sequence diagram
+title Checkout
+autonumber                   optional: number every message
+
+Shopper [icon: user]         participants, left to right in order of first appearance;
+API [icon: aws-api-gateway]  declare them first to control order and icons
+
+Shopper > API: POST /orders  call (solid arrow)
+API --> Shopper: 201         reply (dashed arrow)
+API > API: validate          self call
+A > B > C                    chained calls;  A > B, C  fan out
+A > B [color: red]
+
+alt [label: card declined] { alternatives: alt ... } else [label: ...] { ... }
+  API --> Shopper: 402
+} else [label: charged] {
+  API --> Shopper: 201
+}
+loop [label: every 5s] { ... }       also: opt, par (with "} and {"), critical, break
+note over A, B: text                 also: note left of A: text / note right of A: text
+
+Blocks nest. Labels may also be plain text: "loop every 5s {".
+Write replies with --> so calls and returns are easy to tell apart.
+
+## Example (flow)
 title URL shortener
 direction right
 

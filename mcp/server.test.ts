@@ -130,6 +130,24 @@ describe('linework MCP server', () => {
     expect(missing.isError).toBe(true);
   });
 
+  it('writes, validates and renders sequence diagrams', async () => {
+    const r = await call('write_diagram', {
+      name: 'login',
+      code: 'diagram sequence\ntitle Login\nUser [icon: user]\nAPI [icon: aws-lambda]\nUser > API: POST /login\nalt [label: ok] {\n  API --> User: 200\n} else {\n  API --> Usr: 401\n}',
+    });
+    const t = textOf(r);
+    expect(t).toMatch(/Sequence diagram: 3 participants, 3 messages, 1 blocks/);
+    expect(t).toMatch(/never declared \(no icon\): Usr/);
+
+    const img = (await client.callTool({ name: 'render_diagram', arguments: { name: 'login' } })) as {
+      content: ({ type: 'image'; data: string } | { type: 'text'; text: string })[];
+    };
+    expect(img.content.some((c) => c.type === 'image')).toBe(true);
+    const summary = (img.content.find((c) => c.type === 'text') as { text: string }).text;
+    expect(summary).toMatch(/\d+×\d+ px\./);
+    expect(summary).not.toMatch(/crossing/);
+  });
+
   it('rejects names that escape the folder', async () => {
     const r = await call('write_diagram', { name: '../../etc/passwd', code: 'A' });
     expect(textOf(r)).toMatch(/etc-passwd\.lw/);
@@ -139,7 +157,7 @@ describe('linework MCP server', () => {
 
 describe('syntax guide', () => {
   it('has a working example', () => {
-    const example = SYNTAX_GUIDE.slice(SYNTAX_GUIDE.indexOf('## Example') + '## Example'.length);
+    const example = SYNTAX_GUIDE.slice(SYNTAX_GUIDE.indexOf('## Example (flow)') + '## Example (flow)'.length);
     expect(parse(example).errors).toEqual([]);
     const a = analyze(example);
     expect(a.problems).toEqual([]);

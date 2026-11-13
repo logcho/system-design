@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { EXAMPLES } from './examples';
-import { parse } from './dsl/parser';
+import { parseDocument } from './dsl/document';
 import { resolveIcon } from './render/icons';
 
 describe('examples', () => {
   it.each(EXAMPLES.map((e) => [e.name, e.code]))('%s parses cleanly with known icons', (_, code) => {
-    const d = parse(code);
-    expect(d.errors).toEqual([]);
-    const unknown = d.nodes.filter((n) => n.icon && !resolveIcon(n.icon)).map((n) => n.icon);
+    const doc = parseDocument(code);
+    expect(doc.diagram.errors).toEqual([]);
+    const withIcons = doc.kind === 'flow' ? doc.diagram.nodes : doc.diagram.participants;
+    const unknown = withIcons.filter((n) => n.icon && !resolveIcon(n.icon)).map((n) => n.icon);
     expect(unknown).toEqual([]);
   });
 });

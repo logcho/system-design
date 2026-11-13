@@ -19,10 +19,10 @@ import type { ArrowKind, Diagram, Direction, EdgeDef, NodeDef, ParseError, Shape
  * Connectors: >  <  <>  -   (solid)   -->  <--  <-->  --  (dashed)   ->  <-  (aliases)
  */
 
-const CONNECTOR_RE = /\s+(<-->|<--|-->|<->|<>|->|<-|--|>|<|-)\s+/;
-const CONNECTOR_SPLIT_RE = /\s+(<-->|<--|-->|<->|<>|->|<-|--|>|<|-)\s+/g;
+export const CONNECTOR_RE = /\s+(<-->|<--|-->|<->|<>|->|<-|--|>|<|-)\s+/;
+export const CONNECTOR_SPLIT_RE = /\s+(<-->|<--|-->|<->|<>|->|<-|--|>|<|-)\s+/g;
 
-const CONNECTORS: Record<string, { arrow: ArrowKind; dashed: boolean }> = {
+export const CONNECTORS: Record<string, { arrow: ArrowKind; dashed: boolean }> = {
   '>': { arrow: 'forward', dashed: false },
   '->': { arrow: 'forward', dashed: false },
   '<': { arrow: 'back', dashed: false },
@@ -41,16 +41,16 @@ const SHAPES: Shape[] = ['rect', 'oval', 'diamond', 'cylinder'];
 const NODE_KEYS = new Set(['icon', 'color', 'shape', 'label']);
 const EDGE_KEYS = new Set(['color', 'label']);
 
-type Attrs = Record<string, string>;
+export type Attrs = Record<string, string>;
 
-function stripComment(line: string): string {
+export function stripComment(line: string): string {
   // `//` starts a comment unless it's part of a URL like https://
   const m = /(^|[^:])\/\//.exec(line);
   return m ? line.slice(0, m.index + m[1].length) : line;
 }
 
 /** Split `Name [a: b, c: d]` into name + attrs. Brackets must be at the end. */
-function splitAttrs(text: string): { body: string; attrs: Attrs; raw?: string } {
+export function splitAttrs(text: string): { body: string; attrs: Attrs; raw?: string } {
   const m = /\[([^\]]*)\]\s*$/.exec(text);
   if (!m) return { body: text.trim(), attrs: {} };
   const attrs: Attrs = {};

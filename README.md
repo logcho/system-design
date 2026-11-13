@@ -24,6 +24,7 @@ Queue > Worker
 ## Features
 
 - **Diagram as code** with live preview, syntax highlighting and inline errors
+- **Two kinds of diagram**: architecture/flow diagrams and sequence diagrams
 - **Automatic layout** (ELK layered, orthogonal routing) with nested groups
 - **Official cloud icons**: ~300 AWS, ~600 Azure and ~200 Google Cloud architecture icons (`aws-lambda`, `azure-cosmos-db`, `gcp-bigquery`...)
 - **2,000+ tech logos** for databases and tools (`postgres`, `mongodb`, `redis`, `kafka`, `kubernetes`, `stripe`...)
@@ -99,6 +100,40 @@ Every write returns syntax errors, unknown icons (with close matches) and compon
 | `direction down` | `right` (default), `down`, `left`, `up` |
 | `title My diagram` | Title drawn above the diagram |
 | `// comment` | Comment (⌘/ toggles in the editor) |
+
+### Sequence diagrams
+
+Start the file with `diagram sequence`:
+
+```
+diagram sequence
+title Checkout
+autonumber
+
+Shopper [icon: user]
+API [icon: aws-api-gateway]
+Payments [icon: stripe]
+
+Shopper > API: POST /orders
+API > API: validate cart
+API > Payments: charge card
+
+alt [label: declined] {
+  Payments --> API: 402
+  API --> Shopper: Payment failed
+} else [label: charged] {
+  API --> Shopper: 201 Created
+}
+note over API, Payments: idempotency key on every charge
+```
+
+| Syntax | Meaning |
+| --- | --- |
+| `Name [icon: …, color: …]` | Participant; columns follow the order names first appear |
+| `A > B: label` / `A --> B: label` | Call / reply (dashed); `A > A` is a self call |
+| `alt [label: x] { … } else [label: y] { … }` | Alternatives; also `loop`, `opt`, `par` (with `} and {`), `critical`, `break` |
+| `note over A, B: text` | Also `note left of A:` and `note right of A:` |
+| `autonumber` | Number every message |
 
 ### Icons
 

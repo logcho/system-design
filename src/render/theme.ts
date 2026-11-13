@@ -18,6 +18,8 @@ export interface DiagramTheme {
   labelBg: string;
   groupFill: string;
   groupStroke: string;
+  noteFill: string;
+  noteStroke: string;
 }
 
 const FONT = "Geist, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif";
@@ -42,6 +44,8 @@ export const THEMES: Record<ThemeName, DiagramTheme> = {
     labelBg: '#f6f7f9',
     groupFill: 'rgba(255, 255, 255, 0.55)',
     groupStroke: '#dadde3',
+    noteFill: '#fff8dc',
+    noteStroke: '#ecd98f',
   },
   dark: {
     mode: 'dark',
@@ -60,6 +64,8 @@ export const THEMES: Record<ThemeName, DiagramTheme> = {
     labelBg: '#121317',
     groupFill: 'rgba(255, 255, 255, 0.02)',
     groupStroke: '#2c2f37',
+    noteFill: '#2a2618',
+    noteStroke: '#5c5230',
   },
 };
 
