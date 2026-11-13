@@ -39,7 +39,26 @@ Queue > Worker
 
 ## Getting started
 
-Try it with your agent (see below), or run it from a checkout:
+Install the command line tool:
+
+```bash
+npm install -g linework-mcp
+```
+
+That gives you a `linework` command (or skip the install and use `npx linework-mcp` in its place):
+
+```bash
+linework new checkout --kind sequence     # start diagrams/checkout.lw (flow, sequence or er)
+linework                                  # open the app on ./diagrams in your browser
+linework render checkout                  # save diagrams/checkout.png
+linework render -o docs/images -t dark    # every diagram, dark theme, into docs/images
+linework render arch.lw -o arch.svg -w    # SVG, re-rendered whenever the file changes
+linework check                            # report mistakes in every diagram; exits 1 on errors (handy in CI)
+```
+
+A diagram argument can be a file, a folder, or a name in the diagrams folder (`checkout` means `diagrams/checkout.lw`). Run `linework --help` for every option.
+
+To let an AI agent draw, see the MCP server below. To work on Linework itself, from a checkout:
 
 ```bash
 npm install
@@ -48,7 +67,7 @@ npm run dev
 
 Working on Linework itself: the repo's `.mcp.json` registers the MCP server from source (`tsx mcp/cli.ts --no-app`), and `npm run dev` serves the app with live reload on the same `diagrams/` folder.
 
-Other scripts: `npm test`, `npm run build` (app in `dist/app`, CLI in `dist/node`), `npm run typecheck`, `npm run mcp` (MCP server from source).
+Other scripts: `npm test`, `npm run build` (app in `dist/app`, CLI in `dist/node`), `npm run typecheck`, `npm run mcp` (MCP server from source), `npm run linework -- <command>` (the CLI from source).
 
 Releasing: from `main`, run `npm version patch && git push --follow-tags`. The Release workflow builds, tests and **stages** the version on npm using [trusted publishing](https://docs.npmjs.com/trusted-publishers) (no stored token; provenance included). A maintainer then makes it public with 2FA: `npm stage list linework-mcp`, then `npm stage approve <stage-id>` (or approve on npmjs.com). Versions already on npm are skipped; to retry an existing tag, run the Release workflow by hand from the Actions tab.
 
@@ -79,7 +98,7 @@ Diagrams are plain `.lw` files in `./diagrams`, so they can be committed and rev
 }
 ```
 
-Options: `--dir <path>` (diagrams folder), `--port <n>` (app port, default 5173), `--no-app` (MCP only). `npx linework-mcp app` serves just the app, to browse and edit diagrams without an agent.
+Options: `--dir <path>` (diagrams folder), `--port <n>` (app port, default 5173), `--no-app` (MCP only). Started from a terminal rather than by an MCP client, the same command opens the app instead (`linework mcp` forces the server).
 
 | Tool | What it does |
 | --- | --- |

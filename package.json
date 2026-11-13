@@ -26,6 +26,7 @@
     "url": "https://github.com/logcho/system-design/issues"
   },
   "bin": {
+    "linework": "dist/node/cli.js",
     "linework-mcp": "dist/node/cli.js"
   },
   "files": [
@@ -43,8 +44,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "mcp": "tsx mcp/cli.ts",
-    "prepublishOnly": "npm run build && npm test"
+    "mcp": "tsx mcp/cli.ts mcp",
+    "prepublishOnly": "npm run build && npm test",
+    "linework": "tsx mcp/cli.ts"
   },
   "dependencies": {
     "@likec4/icons": "^1.46.4",
