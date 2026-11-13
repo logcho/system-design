@@ -161,7 +161,8 @@ export function parse(source: string): Diagram {
       return;
     }
 
-    if (text.includes('{') || text.includes('}')) {
+    // Braces inside a connection's label (e.g. a JSON payload) are just text.
+    if ((text.includes('{') || text.includes('}')) && !CONNECTOR_RE.test(` ${text} `)) {
       err(line, 'Braces must be at the end of a group line or alone on their own line');
       return;
     }

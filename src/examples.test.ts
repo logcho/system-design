@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { EXAMPLES } from './examples';
-import { parseDocument } from './dsl/document';
+import { iconHolders, parseDocument } from './dsl/document';
 import { resolveIcon } from './render/icons';
 
 describe('examples', () => {
   it.each(EXAMPLES.map((e) => [e.name, e.code]))('%s parses cleanly with known icons', (_, code) => {
     const doc = parseDocument(code);
     expect(doc.diagram.errors).toEqual([]);
-    const withIcons = doc.kind === 'flow' ? doc.diagram.nodes : doc.diagram.participants;
-    const unknown = withIcons.filter((n) => n.icon && !resolveIcon(n.icon)).map((n) => n.icon);
+    const unknown = iconHolders(doc).filter((n) => n.icon && !resolveIcon(n.icon)).map((n) => n.icon);
     expect(unknown).toEqual([]);
   });
 });
@@ -30,6 +29,13 @@ describe('resolveIcon', () => {
     ['terminal', 'generic', 'terminal'],
   ])('%s → %s %s', (input, kind, name) => {
     expect(resolveIcon(input)).toMatchObject({ kind, name });
+  });
+
+  it('prefers official cloud icons over same-named tech logos', () => {
+    for (const name of ['aws-lambda', 'aws-api-gateway', 'aws-rds', 'aws-ec2', 'azure-sql-database']) {
+      const icon = resolveIcon(name);
+      expect(icon?.kind === 'brand' && icon.entry.pack, name).toBe(name.startsWith('aws') ? 'aws' : 'azure');
+    }
   });
 
   it('returns undefined for unknown names', () => {

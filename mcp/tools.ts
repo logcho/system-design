@@ -4,6 +4,7 @@
  * is started.
  */
 import { readFileSync } from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -66,6 +67,7 @@ export function createLineworkServer({ dir: DIR, appUrl }: ServerOptions): McpSe
         'Call get_syntax_guide before writing your first diagram in a session. Use search_icons instead of guessing icon names.',
         'Every write returns problems (syntax errors, unknown icons, undeclared components): fix them before you finish.',
         'After writing, call render_diagram to look at the result and improve the layout (crossings, stray boxes, crowding).',
+        'When the user wants an image file (for a README, doc or slide), call export_diagram.',
         `Diagrams are saved as .lw files in ${DIR}; the user can watch them update live at ${APP_URL}.`,
       ].join(' '),
     },
@@ -237,7 +239,7 @@ export function createLineworkServer({ dir: DIR, appUrl }: ServerOptions): McpSe
       const r = await renderDiagram(doc.code, { theme: theme ?? 'light' });
       const a = analyze(doc.code);
       const crossings =
-        r.layout.kind === 'flow' ? `, ${r.crossings} crossing connection pair${r.crossings === 1 ? '' : 's'}` : '';
+        r.layout.kind !== 'sequence' ? `, ${r.crossings} crossing connection pair${r.crossings === 1 ? '' : 's'}` : '';
       const summary = [
         `${n} (version ${doc.version}): ${Math.round(r.width)}×${Math.round(r.height)} px${crossings}.`,
         formatAnalysis(a),
@@ -249,6 +251,49 @@ export function createLineworkServer({ dir: DIR, appUrl }: ServerOptions): McpSe
           { type: 'text' as const, text: summary },
         ],
       };
+    },
+  );
+
+  server.registerTool(
+    'export_diagram',
+    {
+      title: 'Save a diagram as an image',
+      description:
+        'Save a diagram as a PNG (crisp, 2x) or SVG file, e.g. to put in a README, doc or slide. By default it is ' +
+        'saved next to the diagram as <name>.png or <name>.svg; pass path to save it elsewhere in the project.',
+      inputSchema: {
+        name: z.string().describe('Diagram name'),
+        format: z.enum(['png', 'svg']).optional().describe('Image format (default png)'),
+        theme: z.enum(['light', 'dark']).optional().describe('Color theme (default light)'),
+        path: z
+          .string()
+          .optional()
+          .describe('Where to save, relative to the project folder, e.g. "docs/architecture.png". Default: next to the diagram.'),
+      },
+    },
+    async ({ name, format, theme, path: target }) => {
+      const n = nameArg(name);
+      const doc = await readDiagram(DIR, n);
+      if (!doc) return fail(`No diagram named "${n}".`);
+      const ext = format ?? (target?.toLowerCase().endsWith('.svg') ? 'svg' : 'png');
+      // Saving is limited to the project: the folder that holds the diagrams folder.
+      const root = path.dirname(DIR);
+      const file = target ? path.resolve(root, target) : path.join(DIR, `${n}.${ext}`);
+      if (file !== root && !file.startsWith(root + path.sep)) {
+        return fail(`"${target}" is outside the project folder (${root}). Use a path inside it, e.g. "docs/${n}.${ext}".`);
+      }
+      if (path.extname(file).toLowerCase() !== `.${ext}`) {
+        return fail(`The path should end in .${ext} for a ${ext.toUpperCase()} export.`);
+      }
+      const r = await renderDiagram(doc.code, { theme: theme ?? 'light', scale: 2 });
+      await mkdir(path.dirname(file), { recursive: true });
+      if (ext === 'png') await writeFile(file, r.png);
+      else await writeFile(file, `<?xml version="1.0" encoding="UTF-8"?>\n${r.svg}`);
+      const size =
+        ext === 'png'
+          ? `${Math.round(r.width * r.scale)}×${Math.round(r.height * r.scale)} px`
+          : `${Math.round(r.width)}×${Math.round(r.height)} (scalable)`;
+      return text(`Saved ${path.relative(root, file) || file} (${size}, ${theme ?? 'light'} theme).`);
     },
   );
 

@@ -4,13 +4,16 @@ export const SYNTAX_GUIDE = `# Linework diagram language
 A diagram is plain text. Layout is automatic: you describe components, groups
 and connections; never give coordinates.
 
-There are two kinds of diagram:
+There are three kinds of diagram:
 - Flow diagrams (the default): architecture, infrastructure, data flow. Everything
   below up to "Sequence diagrams" is about these.
 - Sequence diagrams: one request or process over time, between participants.
   Start the file with "diagram sequence". See "Sequence diagrams" below.
+- ER diagrams: database tables, columns and relationships.
+  Start the file with "diagram er". See "ER diagrams" below.
 Choose a sequence diagram when the order of calls matters (auth flows, checkout,
-retries, webhooks); choose a flow diagram for how the system is built.
+retries, webhooks), an ER diagram for the data model, and a flow diagram for how
+the system is built. A full design often has one of each.
 
 ## Directives
 direction right            right (default) | down | left | up
@@ -91,6 +94,33 @@ note over A, B: text                 also: note left of A: text / note right of 
 
 Blocks nest. Labels may also be plain text: "loop every 5s {".
 Write replies with --> so calls and returns are easy to tell apart.
+
+## ER diagrams
+diagram er                     first line; makes an ER diagram
+title Shop database
+direction right                optional, as in flow diagrams
+
+users [icon: user, color: blue] {     a table; one column per line:
+  id uuid pk                          name type, then any of pk fk unique null
+  email string unique
+  deleted_at timestamp null
+}
+orders {
+  id uuid pk
+  user_id uuid fk
+}
+
+orders.user_id > users.id: places     many-to-one (crow's foot on orders)
+users.id < orders.user_id             one-to-many
+users.id - profiles.user_id           one-to-one
+students.id <> courses.id             many-to-many
+orders.coupon_id --> coupons.id       dashed: optional relationship
+orders > users                        table to table when the column doesn't matter
+
+Point foreign keys at the referenced key (orders.user_id > users.id), so the
+line meets the right rows. Declare every table with its columns; relationships to
+undeclared tables or unknown columns are reported. Use snake_case names and real
+column types (uuid, int, string, text, timestamp, decimal, jsonb...).
 
 ## Example (flow)
 title URL shortener

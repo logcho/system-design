@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { Resvg } from '@resvg/resvg-js';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import { icons as lucideIcons } from 'lucide-react';
-import { parseDocument } from '../src/dsl/document';
+import { iconHolders, parseDocument } from '../src/dsl/document';
 import type { LayoutResult, Point } from '../src/layout/core';
 import { layoutDocumentWith, type DocumentLayout } from '../src/layout/document';
 import { DocumentSvg } from '../src/render/DocumentSvg';
@@ -40,6 +40,8 @@ export interface RenderOptions {
   theme?: ThemeName;
   /** Longest side of the PNG in pixels; small diagrams render at up to 2x. */
   maxSize?: number;
+  /** Fixed zoom (e.g. 2 for a crisp export) instead of fitting into maxSize; capped at 8000 px. */
+  scale?: number;
 }
 
 export interface RenderResult {
@@ -50,19 +52,21 @@ export interface RenderResult {
   height: number;
   scale: number;
   layout: DocumentLayout;
-  /** Crossing connection pairs (flow diagrams only; 0 for sequence diagrams). */
+  /** Crossing connection pairs (flow and ER diagrams; 0 for sequence diagrams). */
   crossings: number;
 }
 
-export async function renderDiagram(code: string, { theme = 'light', maxSize = 1600 }: RenderOptions = {}): Promise<RenderResult> {
+export async function renderDiagram(
+  code: string,
+  { theme = 'light', maxSize = 1600, scale: fixedScale }: RenderOptions = {},
+): Promise<RenderResult> {
   const doc = parseDocument(code);
   const layout = await layoutDocumentWith(elk, doc);
-  const withIcons = doc.kind === 'flow' ? doc.diagram.nodes : doc.diagram.participants;
 
   // Vendor icons are separate modules: load the ones this diagram uses up front,
   // because static rendering cannot wait for them.
   const loaded = new Map<string, SvgComponent>();
-  for (const n of withIcons) {
+  for (const n of iconHolders(doc)) {
     const ref = n.icon ? resolveIcon(n.icon) : undefined;
     if (ref?.kind === 'brand' && !loaded.has(ref.name)) loaded.set(ref.name, await loadBrand(ref.pack, ref.file));
   }
@@ -91,7 +95,8 @@ export async function renderDiagram(code: string, { theme = 'light', maxSize = 1
 
   const width = Number(/width="([\d.]+)"/.exec(svg)?.[1] ?? 0);
   const height = Number(/height="([\d.]+)"/.exec(svg)?.[1] ?? 0);
-  const scale = Math.min(2, maxSize / Math.max(width, height, 1));
+  const longest = Math.max(width, height, 1);
+  const scale = fixedScale ? Math.min(fixedScale, 8000 / longest) : Math.min(2, maxSize / longest);
   const png = new Resvg(svg, {
     fitTo: { mode: 'zoom', value: scale },
     font: { fontFiles: FONT_FILES, loadSystemFonts: false, defaultFontFamily: 'Geist' },
@@ -99,20 +104,32 @@ export async function renderDiagram(code: string, { theme = 'light', maxSize = 1
     .render()
     .asPng();
 
-  const crossings = layout.kind === 'flow' ? countCrossings(layout.layout) : 0;
+  const crossings = crossingsOf(layout);
   return { png, svg, width, height, scale, layout, crossings };
 }
 
 /** Pairs of connections whose lines cross: a quick measure of how tangled a layout is. */
 export function countCrossings(layout: LayoutResult): number {
-  const edges = layout.edges.map((e) => ({ def: e.def, segs: segments(e.points) }));
+  return countLineCrossings(layout.edges.map((e) => ({ ends: [e.def.from, e.def.to], points: e.points })));
+}
+
+function crossingsOf(layout: DocumentLayout): number {
+  if (layout.kind === 'flow') return countCrossings(layout.layout);
+  if (layout.kind === 'er') {
+    return countLineCrossings(layout.layout.relations.map((r) => ({ ends: [r.def.from.table, r.def.to.table], points: r.points })));
+  }
+  return 0;
+}
+
+/** Pairs of lines that cross; lines that share an endpoint component meet there by design. */
+function countLineCrossings(lines: { ends: string[]; points: Point[] }[]): number {
+  const edges = lines.map((l) => ({ ends: l.ends, segs: segments(l.points) }));
   let count = 0;
   for (let i = 0; i < edges.length; i++) {
     for (let j = i + 1; j < edges.length; j++) {
       const a = edges[i];
       const b = edges[j];
-      // Connections sharing a component meet there by design.
-      const shared = [a.def.from, a.def.to].some((n) => n === b.def.from || n === b.def.to);
+      const shared = a.ends.some((n) => b.ends.includes(n));
       if (shared) continue;
       if (a.segs.some(([p, q]) => b.segs.some(([r, s]) => intersects(p, q, r, s)))) count++;
     }

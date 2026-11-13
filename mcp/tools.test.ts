@@ -12,6 +12,7 @@ import { countCrossings } from './render';
 import type { LayoutResult } from '../src/layout/core';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
+let project: string;
 let dir: string;
 let client: Client;
 
@@ -21,7 +22,9 @@ const call = async (name: string, args: Record<string, unknown> = {}) =>
 const textOf = (r: ToolResult) => r.content.map((c) => c.text).join('\n');
 
 beforeAll(async () => {
-  dir = mkdtempSync(path.join(tmpdir(), 'linework-mcp-'));
+  // A throwaway project with a diagrams folder, like a user's repo.
+  project = mkdtempSync(path.join(tmpdir(), 'linework-mcp-'));
+  dir = path.join(project, 'diagrams');
   client = new Client({ name: 'test', version: '0' });
   await client.connect(
     new StdioClientTransport({
@@ -35,7 +38,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await client?.close();
-  rmSync(dir, { recursive: true, force: true });
+  rmSync(project, { recursive: true, force: true });
 });
 
 describe('linework MCP server', () => {
@@ -43,6 +46,7 @@ describe('linework MCP server', () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
       'edit_diagram',
+      'export_diagram',
       'get_syntax_guide',
       'list_diagrams',
       'read_diagram',
@@ -115,6 +119,9 @@ describe('linework MCP server', () => {
     expect(textOf(await call('search_icons', { query: 'cosmos' }))).toMatch(/azure-cosmos-db/);
     expect(textOf(await call('search_icons', { query: 'pub sub', pack: 'gcp' }))).toMatch(/gcp-pub-sub/);
     expect(textOf(await call('search_icons', { query: 'postgres' }))).toMatch(/postgresql/);
+    // Multi-word queries still find something when only some words match.
+    expect(textOf(await call('search_icons', { query: 'websocket api', pack: 'aws' }))).toMatch(/aws-api-gateway/);
+    expect(textOf(await call('search_icons', { query: 'push notification' }))).toMatch(/notification/);
   });
 
   it('renders a diagram to a PNG and counts crossings', async () => {
@@ -149,6 +156,41 @@ describe('linework MCP server', () => {
     const summary = (img.content.find((c) => c.type === 'text') as { text: string }).text;
     expect(summary).toMatch(/\d+×\d+ px\./);
     expect(summary).not.toMatch(/crossing/);
+  });
+
+  it('writes, validates and renders ER diagrams', async () => {
+    const r = await call('write_diagram', {
+      name: 'schema',
+      code: 'diagram er\nusers {\n  id uuid pk\n}\norders {\n  id uuid pk\n  user_id uuid fk\n}\norders.user_id > users.id\norders.coupon_id > coupons.id',
+    });
+    const t = textOf(r);
+    expect(t).toMatch(/ER diagram: 3 tables, 3 columns, 2 relationships/);
+    expect(t).toMatch(/Table "coupons" is not declared/);
+    expect(t).toMatch(/never declared with \{ \}: coupons/);
+
+    const img = (await client.callTool({ name: 'render_diagram', arguments: { name: 'schema' } })) as {
+      content: ({ type: 'image'; data: string } | { type: 'text'; text: string })[];
+    };
+    expect(img.content.some((c) => c.type === 'image')).toBe(true);
+    expect((img.content.find((c) => c.type === 'text') as { text: string }).text).toMatch(/crossing connection pair/);
+  });
+
+  it('exports diagrams as PNG and SVG files inside the project', async () => {
+    const png = textOf(await call('export_diagram', { name: 'checkout-flow' }));
+    expect(png).toMatch(/Saved .*checkout-flow\.png \(\d+×\d+ px, light theme\)/);
+    const pngFile = readFileSync(path.join(dir, 'checkout-flow.png'));
+    expect(pngFile.subarray(1, 4).toString()).toBe('PNG');
+
+    const svg = textOf(await call('export_diagram', { name: 'checkout-flow', path: 'docs/flow.svg', theme: 'dark' }));
+    expect(svg).toMatch(/Saved docs\/flow\.svg/);
+    expect(readFileSync(path.join(project, 'docs/flow.svg'), 'utf8')).toMatch(/^<\?xml[^]*<svg/);
+
+    const outside = await call('export_diagram', { name: 'checkout-flow', path: '../../escape.png' });
+    expect(outside.isError).toBe(true);
+    expect(textOf(outside)).toMatch(/outside the project/);
+
+    const wrongExt = await call('export_diagram', { name: 'checkout-flow', format: 'png', path: 'docs/flow.jpg' });
+    expect(wrongExt.isError).toBe(true);
   });
 
   it('rejects names that escape the folder', async () => {
