@@ -1,7 +1,7 @@
 /**
- * Browser client for the diagram workspace served by the dev server
- * (server/vitePlugin.ts). Without a dev server (a static build), the app falls
- * back to keeping a single diagram in local storage.
+ * Browser client for the diagram workspace API (server/api.ts), served by the
+ * Vite dev server and by `linework-mcp`. When no API answers (e.g. the app is
+ * hosted as static files), the app keeps a single diagram in local storage.
  */
 
 export interface DiagramMeta {
@@ -25,7 +25,6 @@ async function json<T>(res: Response): Promise<T> {
 
 /** The list of diagrams, or null when no workspace is available. */
 export async function listDiagrams(): Promise<DiagramMeta[] | null> {
-  if (!import.meta.hot) return null;
   try {
     const res = await fetch(API);
     if (!res.ok || !res.headers.get('content-type')?.includes('json')) return null;
@@ -58,16 +57,20 @@ export async function saveDiagram(name: string, code: string, baseVersion: strin
   return { ok: true, version: (await json<{ version: string }>(res)).version };
 }
 
+/** One shared event stream for the page; the browser reconnects it automatically. */
+let source: EventSource | undefined;
+const stream = () => (source ??= new EventSource(`${API}/events`));
+
+function subscribe<T>(event: string, cb: (data: T) => void): () => void {
+  const listener = (e: MessageEvent<string>) => cb(JSON.parse(e.data) as T);
+  stream().addEventListener(event, listener);
+  return () => stream().removeEventListener(event, listener);
+}
+
 export function onDiagramChanged(cb: (d: DiagramFile) => void): () => void {
-  const hot = import.meta.hot;
-  if (!hot) return () => {};
-  hot.on('linework:changed', cb);
-  return () => hot.off?.('linework:changed', cb);
+  return subscribe('changed', cb);
 }
 
 export function onDiagramRemoved(cb: (d: { name: string }) => void): () => void {
-  const hot = import.meta.hot;
-  if (!hot) return () => {};
-  hot.on('linework:removed', cb);
-  return () => hot.off?.('linework:removed', cb);
+  return subscribe('removed', cb);
 }

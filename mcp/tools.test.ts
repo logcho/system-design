@@ -26,7 +26,7 @@ beforeAll(async () => {
   await client.connect(
     new StdioClientTransport({
       command: path.join(root, 'node_modules/.bin/tsx'),
-      args: [path.join(root, 'mcp/server.ts')],
+      args: [path.join(root, 'mcp/cli.ts'), '--no-app'],
       env: { ...(process.env as Record<string, string>), LINEWORK_DIR: dir, LINEWORK_URL: 'http://localhost:5173' },
       stderr: 'ignore',
     }),

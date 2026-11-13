@@ -1,17 +1,50 @@
 {
-  "name": "linework",
+  "name": "linework-mcp",
   "version": "0.1.0",
-  "private": true,
-  "description": "Open-source diagram-as-code canvas for system design",
+  "description": "System design diagrams as code, with an MCP server so AI agents can draw them: architecture and sequence diagrams with official AWS, Azure and GCP icons, live preview and PNG rendering",
   "license": "MIT",
   "type": "module",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "diagram",
+    "diagrams-as-code",
+    "system-design",
+    "architecture",
+    "sequence-diagram",
+    "aws",
+    "azure",
+    "gcp",
+    "claude"
+  ],
+  "homepage": "https://github.com/logcho/system-design#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/logcho/system-design.git"
+  },
+  "bugs": {
+    "url": "https://github.com/logcho/system-design/issues"
+  },
+  "bin": {
+    "linework-mcp": "dist/node/cli.js"
+  },
+  "files": [
+    "dist/app",
+    "dist/node",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/build-node.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "mcp": "tsx mcp/server.ts"
+    "mcp": "tsx mcp/cli.ts",
+    "prepublishOnly": "npm run build && npm test"
   },
   "dependencies": {
     "@likec4/icons": "^1.46.4",
@@ -19,7 +52,6 @@
     "@resvg/resvg-js": "^2.6.2",
     "elkjs": "^0.9.3",
     "lucide-react": "^0.460.0",
-    "lz-string": "^1.5.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zod": "^4.6.7"
@@ -29,6 +61,8 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "esbuild": "^0.21.5",
+    "lz-string": "^1.5.0",
     "tsx": "^4.23.15",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
